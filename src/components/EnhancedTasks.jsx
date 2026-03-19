@@ -133,6 +133,21 @@ export default function EnhancedTasksWidget({ embedded }) {
         }]);
         sendNotification('Email Added', `"${data.subject}" added to tasks`);
       }
+      if (data.type === 'calendar-event') {
+        const exists = tasks.find(t => t.text.includes(data.title));
+        if (exists) return;
+        setTasks(prev => [...prev, {
+          id: generateId(),
+          text: `📅 ${data.title}${data.time ? ' — ' + data.time : ''}`,
+          done: false,
+          created: Date.now(),
+          priority: 'normal',
+          category: 'work',
+          dueDate: data.dateISO || null,
+          completedAt: null,
+        }]);
+        sendNotification('Event Added', `"${data.title}" added to tasks`);
+      }
     } catch {}
   };
 

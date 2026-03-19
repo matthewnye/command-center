@@ -94,6 +94,7 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [playlistSearch, setPlaylistSearch] = useState('');
+  const [playlistSort, setPlaylistSort] = useState('default'); // default, name, recent
   const isConfigured = !!getConfig().spotifyToken || !!getConfig().spotifyRefreshToken;
   const PAGE_SIZE = 8;
 
@@ -111,10 +112,12 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
       setPlaylists(result.data.items.map(p => ({
         id: p.id,
         name: p.name,
-        tracks: p.tracks?.total || 0,
+        tracks: p.tracks?.total ?? p.tracks ?? 0,
         image: p.images?.[0]?.url || null,
         uri: p.uri || `spotify:playlist:${p.id}`,
+        snapshot_id: p.snapshot_id || '',
       })));
+      console.log('Playlists loaded:', result.data.items.length, 'first tracks:', result.data.items[0]?.tracks);
     }
     setLoading(false);
   }, [isConfigured]);
@@ -269,7 +272,11 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
 
   const playTrack = async (track) => {
     if (isConfigured && track.uri) {
-      const result = await spotifyFetch('/me/player/play', getConfig().spotifyToken, 'PUT', { uris: [track.uri] });
+      // Play from playlist context so the playlist continues after this track
+      const body = selectedPlaylist 
+        ? { context_uri: `spotify:playlist:${selectedPlaylist.id}`, offset: { uri: track.uri } }
+        : { uris: [track.uri] };
+      const result = await spotifyFetch('/me/player/play', getConfig().spotifyToken, 'PUT', body);
       if (result.status === 404 || result.status === 403) {
         alert('No active Spotify device found. Open Spotify on your computer or phone first, then try again.');
       } else {
@@ -509,7 +516,18 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
                 onChange={e => setPlaylistSearch(e.target.value)}
                 style={{ paddingLeft: 28, fontSize: '0.78rem' }} />
             </div>
-            {playlists.filter(pl => !playlistSearch || pl.name.toLowerCase().includes(playlistSearch.toLowerCase())).map(pl => (
+            <div style={{ display: 'flex', gap: 3, marginBottom: 8 }}>
+              {[['default','Recent'],['name','A-Z'],['tracks','Most Tracks']].map(([key, label]) => (
+                <button key={key} className={`btn btn-sm ${playlistSort === key ? 'btn-accent' : ''}`}
+                  onClick={() => setPlaylistSort(key)} style={{ padding: '2px 7px', fontSize: '0.65rem' }}>{label}</button>
+              ))}
+            </div>
+            {(() => {
+              let filtered = playlists.filter(pl => !playlistSearch || pl.name.toLowerCase().includes(playlistSearch.toLowerCase()));
+              if (playlistSort === 'name') filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+              else if (playlistSort === 'tracks') filtered = [...filtered].sort((a, b) => b.tracks - a.tracks);
+              return filtered;
+            })().map(pl => (
               <div key={pl.id} onClick={() => openPlaylist(pl)} style={{
                 display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0',
                 borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer',
@@ -538,7 +556,10 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
                 <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
               </div>
             ))}
-            {playlists.length > 0 && playlists.filter(pl => !playlistSearch || pl.name.toLowerCase().includes(playlistSearch.toLowerCase())).length === 0 && (
+            {playlists.length > 0 && (() => {
+              let filtered = playlists.filter(pl => !playlistSearch || pl.name.toLowerCase().includes(playlistSearch.toLowerCase()));
+              return filtered.length === 0;
+            })() && (
               <div style={{ textAlign: 'center', padding: 16, color: 'var(--text-muted)', fontSize: '0.82rem' }}>No playlists match "{playlistSearch}"</div>
             )}
           </>

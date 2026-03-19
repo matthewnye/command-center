@@ -322,8 +322,8 @@ export async function fetchRescueTimeFull(config) {
     dailyPulse: summary?.productivity_pulse ?? null,
     productiveHours: summary?.all_productive_hours ?? null,
     distractingHours: summary?.all_distracting_hours ?? null,
-    totalHours: pulse?.totalHours ?? summary?.total_hours ?? null,
-    categories: pulse?.categories ?? null,
+    totalHours: (pulse?.totalHours > 0 ? pulse.totalHours : null) ?? summary?.total_hours ?? null,
+    categories: (pulse?.categories?.length > 0 ? pulse.categories : null) ?? null,
     lastUpdated: Date.now(),
   };
 }

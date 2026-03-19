@@ -313,6 +313,7 @@ function OutlookWidget() {
           const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
           return isToday ? timeStr : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' ' + timeStr;
         })(),
+        dateISO: e.start?.dateTime ? new Date(e.start.dateTime + 'Z').toISOString().split('T')[0] : null,
         duration: '',
         location: e.location?.displayName || '',
         color: 'var(--info)',
@@ -336,7 +337,14 @@ function OutlookWidget() {
         </div>
 
         {tab === 'calendar' && events.map((e, i) => (
-          <div className="calendar-event" key={i}>
+          <div className="calendar-event" key={i} draggable
+            onDragStart={ev => {
+              ev.dataTransfer.setData('application/json', JSON.stringify({
+                type: 'calendar-event', title: e.title, time: e.time, location: e.location, dateISO: e.dateISO || null,
+              }));
+            }}
+            style={{ cursor: 'grab' }}
+          >
             <div className="calendar-time-block">{e.time}<br /><span style={{ opacity: 0.5 }}>{e.duration}</span></div>
             <div className="calendar-event-bar" style={{ background: e.color }}></div>
             <div className="calendar-event-details">
