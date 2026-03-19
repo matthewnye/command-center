@@ -178,22 +178,19 @@ export const DEFAULT_JIRA_LISTS = [
 
 export async function fetchOutlookFlaggedEmails(config) {
   if (!config.msGraphToken && !config.msGraphRefreshToken) return null;
-  const url = 'https://graph.microsoft.com/v1.0/me/messages?$top=200&$orderby=receivedDateTime%20desc&$select=subject,from,receivedDateTime,bodyPreview,isRead,flag,importance';
+  // Use server-side filter: ne 'notFlagged' catches both 'flagged' and 'complete' statuses
+  const url = "https://graph.microsoft.com/v1.0/me/messages?$top=30&$orderby=receivedDateTime%20desc&$select=subject,from,receivedDateTime,bodyPreview,isRead,flag,importance&$filter=flag/flagStatus%20ne%20'notFlagged'";
   try {
     const data = await proxyFetch(url, { headers: { 'Authorization': `Bearer ${config.msGraphToken}` } });
-    const all = data.value || [];
-    const flagged = all.filter(m => m.flag?.flagStatus === 'flagged');
-    console.log(`Flagged emails: ${flagged.length} out of ${all.length} scanned. Flag statuses:`, [...new Set(all.map(m => m.flag?.flagStatus))]);
-    return flagged;
+    console.log(`Flagged emails loaded: ${data.value?.length || 0}`);
+    return data.value || [];
   } catch (err) {
     const newToken = await refreshMsGraphToken();
     if (newToken) {
       try {
         const data = await proxyFetch(url, { headers: { 'Authorization': `Bearer ${newToken}` } });
-        const all = data.value || [];
-        const flagged = all.filter(m => m.flag?.flagStatus === 'flagged');
-        console.log(`Flagged emails (retry): ${flagged.length} out of ${all.length} scanned`);
-        return flagged;
+        console.log(`Flagged emails loaded (retry): ${data.value?.length || 0}`);
+        return data.value || [];
       } catch (e) { console.error('Flagged emails retry failed:', e); }
     }
     console.error('Outlook flagged error:', err);

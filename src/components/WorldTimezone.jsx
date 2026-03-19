@@ -221,7 +221,7 @@ export default function WorldTimezoneWidget() {
                   }}
                   style={{
                     position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                    objectFit: 'cover', opacity: mapLoaded ? 0.5 : 0, transition: 'opacity 0.5s',
+                    objectFit: 'fill', opacity: mapLoaded ? 0.5 : 0, transition: 'opacity 0.5s',
                     filter: 'saturate(0.4) brightness(0.7)',
                   }}
                 />

@@ -110,11 +110,12 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
     const result = await spotifyFetch('/me/playlists?limit=20', getConfig().spotifyToken);
     if (result.ok && result.data?.items) {
       setPlaylists(result.data.items.map(p => {
-        // tracks can be: {href, total}, a number, or undefined
+        // Track count can be in: p.tracks.total, p.tracks (number), p.items.total, p.items (pagination object)
         let count = 0;
         if (typeof p.tracks === 'number') count = p.tracks;
         else if (p.tracks?.total != null) count = p.tracks.total;
-        else if (p.tracks?.items?.length) count = p.tracks.items.length;
+        else if (typeof p.items === 'object' && !Array.isArray(p.items) && p.items?.total != null) count = p.items.total;
+        else if (Array.isArray(p.items)) count = p.items.length;
         return {
           id: p.id,
           name: p.name,
@@ -124,8 +125,6 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
           snapshot_id: p.snapshot_id || '',
         };
       }));
-      // Debug: log full first playlist to see tracks field
-      console.log('Playlists loaded:', result.data.items.length, 'first item ALL KEYS:', Object.keys(result.data.items[0] || {}), 'tracks value:', JSON.stringify(result.data.items[0]?.tracks)?.slice(0, 200));
     }
     setLoading(false);
   }, [isConfigured]);
