@@ -103,8 +103,25 @@ export async function fetchJiraTickets(config, customJql) {
 export async function logTempoTime(config, { issueKey, seconds, date, description }) {
   if (!config.tempoToken) { console.error('Tempo: no token'); return null; }
   if (!config.jiraAccountId) { console.error('Tempo: no jiraAccountId — set it in Settings'); return null; }
+  
+  // Tempo v4 requires numeric issueId, not issueKey. Look it up from JIRA first.
+  let issueId = null;
+  try {
+    const auth = btoa(`${config.jiraEmail}:${config.jiraToken}`);
+    const issueData = await proxyFetch(`https://${config.jiraHost}/rest/api/3/issue/${issueKey}?fields=summary`, {
+      headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/json' }
+    });
+    issueId = issueData.id;
+    console.log(`Tempo: resolved ${issueKey} to issueId ${issueId}`);
+  } catch (err) {
+    console.error(`Tempo: failed to look up issueId for ${issueKey}:`, err);
+    return null;
+  }
+  
+  if (!issueId) { console.error('Tempo: could not resolve issueId'); return null; }
+
   const body = {
-    issueKey,
+    issueId: parseInt(issueId),
     timeSpentSeconds: seconds,
     startDate: date || new Date().toLocaleDateString('en-CA'),
     startTime: '09:00:00',
@@ -113,7 +130,6 @@ export async function logTempoTime(config, { issueKey, seconds, date, descriptio
   };
   console.log('Tempo log request:', JSON.stringify(body));
   try {
-    // Use raw fetch to get the actual error from Tempo
     const resp = await fetch('/api/proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -127,7 +143,7 @@ export async function logTempoTime(config, { issueKey, seconds, date, descriptio
     const result = await resp.json();
     console.log('Tempo log response:', result.ok, result.status, JSON.stringify(result.data)?.slice(0, 300));
     if (!result.ok) {
-      throw new Error(result.data?.errors?.[0]?.message || result.data?.message || JSON.stringify(result.data)?.slice(0, 200) || `Tempo error: ${result.status}`);
+      throw new Error(result.data?.errors?.[0]?.message || result.data?.message || `Tempo error: ${result.status}`);
     }
     return result.data;
   } catch (err) {
