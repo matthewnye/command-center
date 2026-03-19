@@ -203,7 +203,14 @@ function TicketCard({ t, activeTimer, onStartTimer, commentingKey, onToggleComme
           </div>
           <span className="badge" style={{ background: st.bg, color: st.color }}>{t.status}</span>
         </div>
-        <div style={{ fontSize: '0.85rem', marginTop: 4 }}>{t.summary}</div>
+        <div style={{ fontSize: '0.85rem', marginTop: 4 }}>
+          <a href={`https://${getConfig().jiraHost}/browse/${t.key}`} target="_blank" rel="noreferrer"
+            onClick={ev => ev.stopPropagation()}
+            style={{ color: 'inherit', textDecoration: 'none' }}
+            onMouseEnter={ev => ev.target.style.color = 'var(--accent)'}
+            onMouseLeave={ev => ev.target.style.color = 'inherit'}
+          >{t.summary}</a>
+        </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 5, fontSize: '0.7rem', color: 'var(--text-muted)', flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><PriorityIcon priority={t.priority} /> {t.priority}</span>
           <span>·</span>

@@ -5,8 +5,9 @@ import { getConfig, fetchOutlookFlaggedEmails, getMockFlaggedEmails } from '../u
 export default function PinnedEmailWidget() {
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(null);
   const config = getConfig();
-  const isConfigured = !!config.msGraphToken;
+  const isConfigured = !!config.msGraphToken || !!config.msGraphRefreshToken;
 
   useEffect(() => {
     if (isConfigured) {
@@ -27,6 +28,7 @@ export default function PinnedEmailWidget() {
       importance: e.importance,
       isRead: e.isRead,
     })) : getMockFlaggedEmails());
+    setLastRefresh(new Date());
     setLoading(false);
   };
 
@@ -38,6 +40,7 @@ export default function PinnedEmailWidget() {
           {!isConfigured && <span className="badge badge-warning">Demo</span>}
         </div>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          {lastRefresh && <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{lastRefresh.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>}
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
             {emails.length} flagged
           </span>

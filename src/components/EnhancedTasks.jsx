@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   CheckSquare, Plus, Trash2, Check, Bell, Calendar,
-  Flag, Tag, GripVertical, ChevronDown, Clock, Filter, SortAsc
+  Flag, Tag, GripVertical, ChevronDown, Clock, Filter, SortAsc, X
 } from 'lucide-react';
 import { loadTasks, saveTasks, generateId } from '../utils/storage';
 import { scheduleReminder, sendNotification } from '../utils/notifications';
@@ -403,6 +403,8 @@ export default function EnhancedTasksWidget({ embedded }) {
                     style={{ fontSize: '0.75rem', padding: '4px 6px' }}
                   />
                   <button className="btn btn-accent btn-sm" onClick={() => setReminder(t)}>Set</button>
+                  <button className="btn btn-sm" onClick={() => { setReminderTaskId(null); setReminderTime(''); }}
+                    style={{ padding: '3px 5px', color: 'var(--text-muted)' }}><X size={12} /></button>
                 </div>
               )}
             </div>

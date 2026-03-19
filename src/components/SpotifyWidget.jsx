@@ -94,7 +94,8 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [playlistSearch, setPlaylistSearch] = useState('');
-  const [playlistSort, setPlaylistSort] = useState('default'); // default, name, recent
+  const [playlistSort, setPlaylistSort] = useState('default');
+  const [lastRefresh, setLastRefresh] = useState(null);
   const isConfigured = !!getConfig().spotifyToken || !!getConfig().spotifyRefreshToken;
   const PAGE_SIZE = 8;
 
@@ -126,6 +127,7 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
         };
       }));
     }
+    setLastRefresh(new Date());
     setLoading(false);
   }, [isConfigured]);
 
@@ -395,9 +397,12 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
     <div className="widget">
       <div className="widget-header">
         <div className="widget-title"><Music className="icon" /> Music {!isConfigured && <span className="badge badge-warning">Demo</span>}</div>
-        <button className="btn btn-sm" onClick={() => { loadPlaylists(); loadNowPlaying(); }} disabled={loading}>
-          <RefreshCw size={12} className={loading ? 'spin' : ''} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {lastRefresh && <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{lastRefresh.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>}
+          <button className="btn btn-sm" onClick={() => { loadPlaylists(); loadNowPlaying(); }} disabled={loading}>
+            <RefreshCw size={12} className={loading ? 'spin' : ''} />
+          </button>
+        </div>
       </div>
       <div className="widget-body">
 
