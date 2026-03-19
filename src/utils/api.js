@@ -101,24 +101,35 @@ export async function fetchJiraTickets(config, customJql) {
 // ── Tempo Time Logging ──
 
 export async function logTempoTime(config, { issueKey, seconds, date, description }) {
-  if (!config.tempoToken) return null;
+  if (!config.tempoToken) { console.error('Tempo: no token'); return null; }
+  if (!config.jiraAccountId) { console.error('Tempo: no jiraAccountId — set it in Settings'); return null; }
+  const body = {
+    issueKey,
+    timeSpentSeconds: seconds,
+    startDate: date || new Date().toLocaleDateString('en-CA'),
+    startTime: '09:00:00',
+    description: description || '',
+    authorAccountId: config.jiraAccountId,
+  };
+  console.log('Tempo log request:', JSON.stringify(body));
   try {
-    const data = await proxyFetch('https://api.tempo.io/4/worklogs', {
+    // Use raw fetch to get the actual error from Tempo
+    const resp = await fetch('/api/proxy', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${config.tempoToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: {
-        issueKey,
-        timeSpentSeconds: seconds,
-        startDate: date || new Date().toLocaleDateString('en-CA'),
-        startTime: '09:00:00',
-        description: description || '',
-        authorAccountId: config.jiraAccountId,
-      }
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: 'https://api.tempo.io/4/worklogs',
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${config.tempoToken}`, 'Content-Type': 'application/json' },
+        body,
+      }),
     });
-    return data;
+    const result = await resp.json();
+    console.log('Tempo log response:', result.ok, result.status, JSON.stringify(result.data)?.slice(0, 300));
+    if (!result.ok) {
+      throw new Error(result.data?.errors?.[0]?.message || result.data?.message || JSON.stringify(result.data)?.slice(0, 200) || `Tempo error: ${result.status}`);
+    }
+    return result.data;
   } catch (err) {
     console.error('Tempo log error:', err);
     return null;

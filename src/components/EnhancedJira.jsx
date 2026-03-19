@@ -145,11 +145,13 @@ function ManualTimeLogForm({ issueKey, onClose, onLogged }) {
       <div style={{ display: 'flex', gap: 6, marginBottom: 6, alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <input type="number" min={0} max={23} value={hours} onChange={e => setHours(parseInt(e.target.value) || 0)}
+            className="no-spinner"
             style={{ width: 48, textAlign: 'center', fontSize: '0.82rem', fontFamily: 'var(--font-mono)' }} />
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>h</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <input type="number" min={0} max={59} step={5} value={minutes} onChange={e => setMinutes(parseInt(e.target.value) || 0)}
+            className="no-spinner"
             style={{ width: 48, textAlign: 'center', fontSize: '0.82rem', fontFamily: 'var(--font-mono)' }} />
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>m</span>
         </div>
