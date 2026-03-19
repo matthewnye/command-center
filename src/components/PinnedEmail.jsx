@@ -34,7 +34,7 @@ export default function PinnedEmailWidget() {
     <div className="widget">
       <div className="widget-header">
         <div className="widget-title">
-          <Flag className="icon" /> Pinned Emails
+          <Flag className="icon" /> Flagged Emails
           {!isConfigured && <span className="badge badge-warning">Demo</span>}
         </div>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -83,7 +83,7 @@ export default function PinnedEmailWidget() {
 
         {emails.length === 0 && (
           <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            No flagged emails
+            No flagged emails found
           </div>
         )}
 

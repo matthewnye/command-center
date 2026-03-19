@@ -109,15 +109,23 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
     setLoading(true);
     const result = await spotifyFetch('/me/playlists?limit=20', getConfig().spotifyToken);
     if (result.ok && result.data?.items) {
-      setPlaylists(result.data.items.map(p => ({
-        id: p.id,
-        name: p.name,
-        tracks: p.tracks?.total ?? p.tracks ?? 0,
-        image: p.images?.[0]?.url || null,
-        uri: p.uri || `spotify:playlist:${p.id}`,
-        snapshot_id: p.snapshot_id || '',
-      })));
-      console.log('Playlists loaded:', result.data.items.length, 'first tracks:', result.data.items[0]?.tracks);
+      setPlaylists(result.data.items.map(p => {
+        // tracks can be: {href, total}, a number, or undefined
+        let count = 0;
+        if (typeof p.tracks === 'number') count = p.tracks;
+        else if (p.tracks?.total != null) count = p.tracks.total;
+        else if (p.tracks?.items?.length) count = p.tracks.items.length;
+        return {
+          id: p.id,
+          name: p.name,
+          tracks: count,
+          image: p.images?.[0]?.url || null,
+          uri: p.uri || `spotify:playlist:${p.id}`,
+          snapshot_id: p.snapshot_id || '',
+        };
+      }));
+      // Debug: log full first playlist to see tracks field
+      console.log('Playlists loaded:', result.data.items.length, 'first pl tracks field:', JSON.stringify(result.data.items[0]?.tracks));
     }
     setLoading(false);
   }, [isConfigured]);

@@ -112,7 +112,7 @@ export async function logTempoTime(config, { issueKey, seconds, date, descriptio
       body: {
         issueKey,
         timeSpentSeconds: seconds,
-        startDate: date || new Date().toISOString().split('T')[0],
+        startDate: date || new Date().toLocaleDateString('en-CA'),
         startTime: '09:00:00',
         description: description || '',
         authorAccountId: config.jiraAccountId,
@@ -178,7 +178,7 @@ export const DEFAULT_JIRA_LISTS = [
 
 export async function fetchOutlookFlaggedEmails(config) {
   if (!config.msGraphToken && !config.msGraphRefreshToken) return null;
-  const url = 'https://graph.microsoft.com/v1.0/me/messages?$top=50&$orderby=receivedDateTime%20desc&$select=subject,from,receivedDateTime,bodyPreview,isRead,flag,importance';
+  const url = 'https://graph.microsoft.com/v1.0/me/messages?$top=200&$orderby=receivedDateTime%20desc&$select=subject,from,receivedDateTime,bodyPreview,isRead,flag,importance';
   try {
     const data = await proxyFetch(url, { headers: { 'Authorization': `Bearer ${config.msGraphToken}` } });
     return (data.value || []).filter(m => m.flag?.flagStatus === 'flagged');
@@ -207,8 +207,8 @@ export function getMockFlaggedEmails() {
 
 export async function fetchTempoWorklogs(config) {
   if (!config.tempoToken || !config.jiraAccountId) return null;
-  const today = new Date().toISOString().split('T')[0];
-  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toLocaleDateString('en-CA');
   try {
     const data = await proxyFetch(`https://api.tempo.io/4/worklogs/user/${config.jiraAccountId}?from=${weekAgo}&to=${today}`, {
       headers: { 'Authorization': `Bearer ${config.tempoToken}` }
@@ -225,7 +225,7 @@ export async function fetchTempoWorklogs(config) {
 // Fetch detailed activity data for today, broken by productivity level
 export async function fetchRescueTimeData(config) {
   if (!config.rescueTimeKey) return null;
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
   try {
     const data = await proxyFetch(`https://www.rescuetime.com/anapi/data?key=${config.rescueTimeKey}&format=json&perspective=rank&restrict_kind=productivity&interval=hour&restrict_begin=${today}&restrict_end=${today}`);
     return data;
@@ -253,7 +253,7 @@ export async function fetchRescueTimeCurrentPulse(config) {
   if (!config.rescueTimeKey) return null;
   const now = new Date();
   const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-  const today = now.toISOString().split('T')[0];
+  const today = now.toLocaleDateString('en-CA');
   try {
     // Get productivity-categorized time for the last hour
     const data = await proxyFetch(
@@ -331,7 +331,7 @@ export async function fetchRescueTimeFull(config) {
 // Fetch activities grouped by category name (Software Development, Email, etc.)
 export async function fetchRescueTimeActivities(config) {
   if (!config.rescueTimeKey) return null;
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
   try {
     const data = await proxyFetch(
       `https://www.rescuetime.com/anapi/data?key=${config.rescueTimeKey}&format=json&perspective=rank&restrict_kind=overview&interval=day&restrict_begin=${today}&restrict_end=${today}`

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Globe, List, Plus, X, MapPin, ZoomIn, ZoomOut } from 'lucide-react';
+import { Globe, List, Plus, X, MapPin, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { generateId } from '../utils/storage';
 
 // NASA Earth at Night (public domain) - loads in user's browser
@@ -77,9 +77,41 @@ export default function WorldTimezoneWidget() {
   const [now, setNow] = useState(new Date());
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(false);
-  const [zoom, setZoom] = useState(1.2); // Default slightly zoomed to crop poles
+  const [zoom, setZoom] = useState(1.2);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const dragRef = useRef({ dragging: false, startX: 0, startY: 0, startPanX: 0, startPanY: 0 });
+  const mapContainerRef = useRef(null);
+
+  const handleWheel = (e) => {
+    e.preventDefault();
+    setZoom(z => Math.max(0.8, Math.min(3, z + (e.deltaY > 0 ? -0.15 : 0.15))));
+  };
+  const handleMouseDown = (e) => {
+    if (e.button !== 0) return;
+    dragRef.current = { dragging: true, startX: e.clientX, startY: e.clientY, startPanX: pan.x, startPanY: pan.y };
+    e.currentTarget.style.cursor = 'grabbing';
+  };
+  const handleMouseMove = (e) => {
+    if (!dragRef.current.dragging) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    setPan({ x: dragRef.current.startPanX + dx, y: dragRef.current.startPanY + dy });
+  };
+  const handleMouseUp = (e) => {
+    dragRef.current.dragging = false;
+    if (e.currentTarget) e.currentTarget.style.cursor = 'grab';
+  };
+  const resetView = () => { setZoom(1.2); setPan({ x: 0, y: 0 }); }; // Default slightly zoomed to crop poles
 
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 10000); return () => clearInterval(t); }, []);
+  // Non-passive wheel listener for zoom
+  useEffect(() => {
+    const el = mapContainerRef.current;
+    if (!el) return;
+    const handler = (e) => { e.preventDefault(); setZoom(z => Math.max(0.8, Math.min(3, z + (e.deltaY > 0 ? -0.15 : 0.15)))); };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  });
   useEffect(() => { saveTzList(saved); }, [saved]);
   useEffect(() => {
     if (saved.length === 0) {
@@ -134,28 +166,40 @@ export default function WorldTimezoneWidget() {
           <div style={{ position: 'relative', marginBottom: 8 }}>
             {/* Zoom controls */}
             <div style={{ position: 'absolute', top: 6, right: 6, zIndex: 30, display: 'flex', gap: 2, flexDirection: 'column' }}>
-              <button onClick={() => setZoom(z => Math.min(z + 0.2, 2.5))} style={{
+              <button onClick={() => setZoom(z => Math.min(z + 0.2, 3))} style={{
                 width: 24, height: 24, borderRadius: 4, border: '1px solid rgba(255,255,255,0.15)',
                 background: 'rgba(10,10,20,0.8)', color: 'var(--text-secondary)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}><ZoomIn size={12} /></button>
               <button onClick={() => setZoom(z => Math.max(z - 0.2, 0.8))} style={{
                 width: 24, height: 24, borderRadius: 4, border: '1px solid rgba(255,255,255,0.15)',
                 background: 'rgba(10,10,20,0.8)', color: 'var(--text-secondary)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}><ZoomOut size={12} /></button>
+              <button onClick={resetView} title="Reset view" style={{
+                width: 24, height: 24, borderRadius: 4, border: '1px solid rgba(255,255,255,0.15)',
+                background: 'rgba(10,10,20,0.8)', color: 'var(--text-secondary)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}><RotateCcw size={10} /></button>
             </div>
 
-            {/* Map container - clip the map but allow tooltips to overflow via padding trick */}
-            <div style={{
+            {/* Map container — drag and scroll zoom */}
+            <div ref={mapContainerRef} style={{
               borderRadius: 'var(--radius-md)', overflow: 'hidden',
-              background: '#0a0a14', position: 'relative',
-            }}>
-              {/* Inner zoomable content */}
+              background: '#0a0a14', position: 'relative', cursor: 'grab',
+            }}
+              
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            >
+              {/* Inner zoomable + pannable content */}
               <div style={{
                 position: 'relative', aspectRatio: '2.2 / 1',
-                transform: `scale(${zoom})`, transformOrigin: 'center 40%',
-                transition: 'transform 0.3s ease',
+                transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+                transformOrigin: 'center 40%',
+                transition: dragRef.current.dragging ? 'none' : 'transform 0.3s ease',
               }}>
                 {/* Real map image */}
                 <img

@@ -1307,7 +1307,7 @@ const WIDGET_REGISTRY = [
   { id: 'jira',        label: 'JIRA Tickets',      icon: '🎫', component: EnhancedJiraWidget },
   { id: 'timer',       label: 'Focus Timer',       icon: '⏱️', component: FocusTimerWidget },
   { id: 'timezones',   label: 'World Clock',       icon: '🌍', component: WorldTimezoneWidget },
-  { id: 'pinned',      label: 'Pinned Emails',     icon: '📌', component: PinnedEmailWidget },
+  { id: 'pinned',      label: 'Flagged Emails',     icon: '📌', component: PinnedEmailWidget },
   { id: 'spotify',     label: 'Music',           icon: '🎵', component: SpotifyWidget },
   { id: 'rescuetime',  label: 'Productivity',      icon: '📊', component: RescueTimeWidget },
   { id: 'launch',      label: 'Quick Launch',      icon: '🚀', component: QuickLaunchWidget },
