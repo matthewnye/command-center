@@ -149,40 +149,54 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
   function extractTracks(data) {
     if (!data) return [];
     
-    // Shape 1: { items: [{track: {...}}, ...] }
-    if (Array.isArray(data.items) && data.items.length > 0) {
-      return data.items.map((item, i) => {
-        const t = item?.track || item;
-        if (!t || !t.name) return null;
-        return {
-          id: t.id || `t${i}`,
-          name: t.name,
-          artist: t.artists?.map(a => a.name).join(', ') || 'Unknown',
-          album: t.album?.name || '',
-          duration: formatMs(t.duration_ms),
-          uri: t.uri || '',
-          isPlaying: false,
-        };
-      }).filter(Boolean);
+    console.log('extractTracks input type:', typeof data, 'isArray:', Array.isArray(data), 
+      'keys:', typeof data === 'object' && !Array.isArray(data) ? Object.keys(data).slice(0, 8) : 'n/a',
+      'items type:', typeof data.items, 'items isArray:', Array.isArray(data.items));
+    if (data.items && !Array.isArray(data.items)) {
+      console.log('items is object with keys:', Object.keys(data.items).slice(0, 8));
+    }
+    if (Array.isArray(data.items) && data.items[0]) {
+      console.log('First item keys:', Object.keys(data.items[0]).slice(0, 8));
     }
     
-    // Shape 2: { tracks: { items: [...] } }
-    if (data.tracks?.items) return extractTracks(data.tracks);
-    
-    // Shape 3: direct array
-    if (Array.isArray(data)) {
-      return data.map((t, i) => ({
+    function parseItem(item, i) {
+      const t = item?.track || item;
+      if (!t || !t.name) return null;
+      return {
         id: t.id || `t${i}`,
-        name: t.name || 'Unknown',
+        name: t.name,
         artist: t.artists?.map(a => a.name).join(', ') || 'Unknown',
         album: t.album?.name || '',
         duration: formatMs(t.duration_ms),
         uri: t.uri || '',
         isPlaying: false,
-      }));
+      };
     }
     
-    console.warn('Could not extract tracks from:', JSON.stringify(data).slice(0, 300));
+    // Shape 1: { items: [ {track: {...}}, ... ] } — direct array of track wrappers
+    if (Array.isArray(data.items) && data.items.length > 0) {
+      return data.items.map(parseItem).filter(Boolean);
+    }
+    
+    // Shape 2: { items: { items: [...], limit, offset, ... } } — items is a pagination object
+    if (data.items && typeof data.items === 'object' && !Array.isArray(data.items) && Array.isArray(data.items.items)) {
+      return data.items.items.map(parseItem).filter(Boolean);
+    }
+    
+    // Shape 3: { tracks: { items: [...] } } or { tracks: { items: { items: [...] } } }
+    if (data.tracks) return extractTracks(data.tracks);
+    
+    // Shape 4: direct array
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map(parseItem).filter(Boolean);
+    }
+    
+    // Shape 5: pagination object at top level { href, items: [...], limit, next, ... }
+    if (data.href && data.limit != null) {
+      if (Array.isArray(data.items)) return data.items.map(parseItem).filter(Boolean);
+    }
+    
+    console.warn('Could not extract tracks. Data sample:', JSON.stringify(data).slice(0, 400));
     return [];
   }
 

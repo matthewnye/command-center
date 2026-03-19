@@ -280,7 +280,9 @@ function OutlookWidget() {
 
   const loadData = async () => {
     const cfg = getConfig();
+    console.log('OutlookWidget: msGraphToken exists:', !!cfg.msGraphToken, 'refreshToken exists:', !!cfg.msGraphRefreshToken);
     if (!cfg.msGraphToken && !cfg.msGraphRefreshToken) {
+      console.log('OutlookWidget: No tokens, using mock data');
       setEmails(getMockEmails());
       setEvents(getMockCalendar());
       return;
@@ -290,6 +292,7 @@ function OutlookWidget() {
       fetchOutlookEmails(cfg),
       fetchOutlookCalendar(cfg),
     ]);
+    console.log('OutlookWidget: emailData count:', emailData?.length ?? 'null', 'calData count:', calData?.length ?? 'null');
     if (emailData) {
       setEmails(emailData.map(e => ({
         from: e.from?.emailAddress?.name || e.from?.emailAddress?.address || 'Unknown',
@@ -387,12 +390,14 @@ function RescueTimeWidget() {
   ];
 
   const loadData = useCallback(async () => {
-    if (!isConfigured) return;
+    if (!isConfigured) { console.log('RescueTimeWidget: not configured'); return; }
     setLoading(true);
+    console.log('RescueTimeWidget: fetching data...');
     const [fullData, actData] = await Promise.all([
       fetchRescueTimeFull(config),
       fetchRescueTimeActivities(config),
     ]);
+    console.log('RescueTimeWidget: fullData:', fullData ? 'score=' + fullData.score + ' hours=' + fullData.totalHours : 'null', 'actData count:', actData?.length ?? 'null');
     if (fullData) {
       setScore(fullData.score);
       setTotalHours(fullData.totalHours);
