@@ -159,8 +159,9 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
       console.log('First item keys:', Object.keys(data.items[0]).slice(0, 8));
     }
     
-    function parseItem(item, i) {
-      const t = item?.track || item;
+    function parseItem(raw, i) {
+      // Spotify uses different keys: "track" on /tracks endpoint, "item" on full playlist
+      const t = raw?.track || raw?.item || raw;
       if (!t || !t.name) return null;
       return {
         id: t.id || `t${i}`,
