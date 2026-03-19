@@ -1303,7 +1303,7 @@ function SettingsPanel({ onClose }) {
 
 const WIDGET_REGISTRY = [
   { id: 'heartbeat',   label: 'Focus Heartbeat',   icon: '💓', component: FocusHeartbeatWidget },
-  { id: 'hub',         label: 'Tasks / Calendar / Voice', icon: '📋', component: HubWidget },
+  { id: 'hub',         label: 'Tools',              icon: '🛠', component: HubWidget },
   { id: 'jira',        label: 'JIRA Tickets',      icon: '🎫', component: EnhancedJiraWidget },
   { id: 'timer',       label: 'Focus Timer',       icon: '⏱️', component: FocusTimerWidget },
   { id: 'timezones',   label: 'World Clock',       icon: '🌍', component: WorldTimezoneWidget },
@@ -1311,7 +1311,6 @@ const WIDGET_REGISTRY = [
   { id: 'spotify',     label: 'Music',           icon: '🎵', component: SpotifyWidget },
   { id: 'rescuetime',  label: 'Productivity',      icon: '📊', component: RescueTimeWidget },
   { id: 'launch',      label: 'Quick Launch',      icon: '🚀', component: QuickLaunchWidget },
-  { id: 'unicode',     label: 'Unicode Text',      icon: '🔤', component: UnicodeWidget },
   { id: 'linkedin',    label: 'LinkedIn',          icon: '💼', component: LinkedInWidget },
   { id: 'meetings',    label: 'Meeting Notes',     icon: '🎥', component: MeetingNotesWidget },
   { id: 'outlook',     label: 'Outlook',           icon: '📧', component: OutlookWidget },

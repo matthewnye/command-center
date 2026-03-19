@@ -77,8 +77,15 @@ export default function WorldTimezoneWidget() {
   const [now, setNow] = useState(new Date());
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState(false);
-  const [zoom, setZoom] = useState(1.2);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(() => {
+    try { return parseFloat(localStorage.getItem('cmd_map_zoom')) || 1.2; } catch { return 1.2; }
+  });
+  const [pan, setPan] = useState(() => {
+    try { const p = JSON.parse(localStorage.getItem('cmd_map_pan')); return p && p.x != null ? p : { x: 0, y: 0 }; } catch { return { x: 0, y: 0 }; }
+  });
+
+  useEffect(() => { localStorage.setItem('cmd_map_zoom', zoom.toString()); }, [zoom]);
+  useEffect(() => { localStorage.setItem('cmd_map_pan', JSON.stringify(pan)); }, [pan]);
   const dragRef = useRef({ dragging: false, startX: 0, startY: 0, startPanX: 0, startPanY: 0 });
   const mapContainerRef = useRef(null);
 
@@ -101,7 +108,7 @@ export default function WorldTimezoneWidget() {
     dragRef.current.dragging = false;
     if (e.currentTarget) e.currentTarget.style.cursor = 'grab';
   };
-  const resetView = () => { setZoom(1.2); setPan({ x: 0, y: 0 }); }; // Default slightly zoomed to crop poles
+  const resetView = () => { setZoom(1.2); setPan({ x: 0, y: 0 }); localStorage.removeItem('cmd_map_zoom'); localStorage.removeItem('cmd_map_pan'); }; // Default slightly zoomed to crop poles
 
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 10000); return () => clearInterval(t); }, []);
   // Non-passive wheel listener for zoom
@@ -196,7 +203,7 @@ export default function WorldTimezoneWidget() {
             >
               {/* Inner zoomable + pannable content */}
               <div style={{
-                position: 'relative', aspectRatio: '2.2 / 1',
+                position: 'relative', aspectRatio: '1.65 / 1',
                 transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
                 transformOrigin: 'center 40%',
                 transition: dragRef.current.dragging ? 'none' : 'transform 0.3s ease',

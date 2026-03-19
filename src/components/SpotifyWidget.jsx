@@ -125,7 +125,7 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
         };
       }));
       // Debug: log full first playlist to see tracks field
-      console.log('Playlists loaded:', result.data.items.length, 'first pl tracks field:', JSON.stringify(result.data.items[0]?.tracks));
+      console.log('Playlists loaded:', result.data.items.length, 'first item ALL KEYS:', Object.keys(result.data.items[0] || {}), 'tracks value:', JSON.stringify(result.data.items[0]?.tracks)?.slice(0, 200));
     }
     setLoading(false);
   }, [isConfigured]);

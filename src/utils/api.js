@@ -181,13 +181,19 @@ export async function fetchOutlookFlaggedEmails(config) {
   const url = 'https://graph.microsoft.com/v1.0/me/messages?$top=200&$orderby=receivedDateTime%20desc&$select=subject,from,receivedDateTime,bodyPreview,isRead,flag,importance';
   try {
     const data = await proxyFetch(url, { headers: { 'Authorization': `Bearer ${config.msGraphToken}` } });
-    return (data.value || []).filter(m => m.flag?.flagStatus === 'flagged');
+    const all = data.value || [];
+    const flagged = all.filter(m => m.flag?.flagStatus === 'flagged');
+    console.log(`Flagged emails: ${flagged.length} out of ${all.length} scanned. Flag statuses:`, [...new Set(all.map(m => m.flag?.flagStatus))]);
+    return flagged;
   } catch (err) {
     const newToken = await refreshMsGraphToken();
     if (newToken) {
       try {
         const data = await proxyFetch(url, { headers: { 'Authorization': `Bearer ${newToken}` } });
-        return (data.value || []).filter(m => m.flag?.flagStatus === 'flagged');
+        const all = data.value || [];
+        const flagged = all.filter(m => m.flag?.flagStatus === 'flagged');
+        console.log(`Flagged emails (retry): ${flagged.length} out of ${all.length} scanned`);
+        return flagged;
       } catch (e) { console.error('Flagged emails retry failed:', e); }
     }
     console.error('Outlook flagged error:', err);

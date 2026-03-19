@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { CheckSquare, Calendar, Mic, Layers } from 'lucide-react';
+import { CheckSquare, Mic, Layers, Type, Copy, Check } from 'lucide-react';
 import EnhancedTasksWidget from './EnhancedTasks';
-import EnhancedCalendarWidget from './EnhancedCalendar';
+import { transformText, STYLE_NAMES, STYLE_KEYS } from '../utils/unicode';
 
 // Lightweight Voice Notes (inline to avoid circular deps)
 import { useEffect, useRef } from 'react';
@@ -79,6 +79,38 @@ function VoiceNotesInner() {
   );
 }
 
+// ── Unicode Text Inner ──
+
+function UnicodeInner() {
+  const [input, setInput] = useState('');
+  const [style, setStyle] = useState('bold');
+  const [copied, setCopied] = useState(false);
+  const output = transformText(input, style);
+  const copyOutput = async () => {
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <>
+      <input type="text" placeholder="Type text to transform..." value={input} onChange={e => setInput(e.target.value)} style={{ marginBottom: 10 }} />
+      <div className="unicode-grid">
+        {STYLE_KEYS.map(k => (
+          <button key={k} className={`unicode-style-btn ${style === k ? 'active' : ''}`} onClick={() => setStyle(k)}>{STYLE_NAMES[k]}</button>
+        ))}
+      </div>
+      {input && (
+        <>
+          <div className="unicode-output">{output}</div>
+          <button className="btn btn-sm" style={{ marginTop: 8, width: '100%' }} onClick={copyOutput}>
+            {copied ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy to Clipboard</>}
+          </button>
+        </>
+      )}
+    </>
+  );
+}
+
 // ── Hub Widget ──
 
 export default function HubWidget() {
@@ -88,8 +120,7 @@ export default function HubWidget() {
     <div className="widget">
       <div className="widget-header">
         <div className="widget-title">
-          <Layers className="icon" />
-          {tab === 'tasks' ? 'Tasks' : tab === 'calendar' ? 'Calendar' : 'Voice Notes'}
+          <Layers className="icon" /> Tools
         </div>
       </div>
       <div className="widget-body">
@@ -97,17 +128,17 @@ export default function HubWidget() {
           <button className={tab === 'tasks' ? 'active' : ''} onClick={() => setTab('tasks')}>
             <CheckSquare size={12} style={{ verticalAlign: -2, marginRight: 4 }} />Tasks
           </button>
-          <button className={tab === 'calendar' ? 'active' : ''} onClick={() => setTab('calendar')}>
-            <Calendar size={12} style={{ verticalAlign: -2, marginRight: 4 }} />Calendar
-          </button>
           <button className={tab === 'voice' ? 'active' : ''} onClick={() => setTab('voice')}>
             <Mic size={12} style={{ verticalAlign: -2, marginRight: 4 }} />Voice
+          </button>
+          <button className={tab === 'unicode' ? 'active' : ''} onClick={() => setTab('unicode')}>
+            <Type size={12} style={{ verticalAlign: -2, marginRight: 4 }} />Unicode
           </button>
         </div>
 
         {tab === 'tasks' && <EnhancedTasksWidget embedded />}
-        {tab === 'calendar' && <EnhancedCalendarWidget embedded />}
         {tab === 'voice' && <VoiceNotesInner />}
+        {tab === 'unicode' && <UnicodeInner />}
       </div>
     </div>
   );
