@@ -178,19 +178,16 @@ export const DEFAULT_JIRA_LISTS = [
 
 export async function fetchOutlookFlaggedEmails(config) {
   if (!config.msGraphToken && !config.msGraphRefreshToken) return null;
-  // Fetch recent messages and filter flagged ones client-side (avoids OData filter encoding issues through proxy)
   const url = 'https://graph.microsoft.com/v1.0/me/messages?$top=50&$orderby=receivedDateTime%20desc&$select=subject,from,receivedDateTime,bodyPreview,isRead,flag,importance';
   try {
     const data = await proxyFetch(url, { headers: { 'Authorization': `Bearer ${config.msGraphToken}` } });
-    const flagged = (data.value || []).filter(m => m.flag?.flagStatus === 'flagged');
-    return flagged;
+    return (data.value || []).filter(m => m.flag?.flagStatus === 'flagged');
   } catch (err) {
     const newToken = await refreshMsGraphToken();
     if (newToken) {
       try {
         const data = await proxyFetch(url, { headers: { 'Authorization': `Bearer ${newToken}` } });
-        const flagged = (data.value || []).filter(m => m.flag?.flagStatus === 'flagged');
-        return flagged;
+        return (data.value || []).filter(m => m.flag?.flagStatus === 'flagged');
       } catch (e) { console.error('Flagged emails retry failed:', e); }
     }
     console.error('Outlook flagged error:', err);
@@ -396,9 +393,10 @@ export async function fetchOutlookCalendar(config) {
   if (!config.msGraphToken && !config.msGraphRefreshToken) return null;
   let token = config.msGraphToken;
   const now = new Date().toISOString();
-  const eod = new Date(); eod.setHours(23, 59, 59); const end = eod.toISOString();
+  const future = new Date(); future.setDate(future.getDate() + 3); future.setHours(23, 59, 59);
+  const end = future.toISOString();
   try {
-    const data = await proxyFetch(`https://graph.microsoft.com/v1.0/me/calendarview?startDateTime=${now}&endDateTime=${end}&$orderby=start/dateTime&$top=10`, {
+    const data = await proxyFetch(`https://graph.microsoft.com/v1.0/me/calendarview?startDateTime=${now}&endDateTime=${end}&$orderby=start/dateTime&$top=30`, {
       headers: { 'Authorization': `Bearer ${token}`, 'Prefer': 'outlook.timezone="UTC"' }
     });
     return data.value;
@@ -406,7 +404,7 @@ export async function fetchOutlookCalendar(config) {
     const newToken = await refreshMsGraphToken();
     if (newToken) {
       try {
-        const data = await proxyFetch(`https://graph.microsoft.com/v1.0/me/calendarview?startDateTime=${now}&endDateTime=${end}&$orderby=start/dateTime&$top=10`, {
+        const data = await proxyFetch(`https://graph.microsoft.com/v1.0/me/calendarview?startDateTime=${now}&endDateTime=${end}&$orderby=start/dateTime&$top=30`, {
           headers: { 'Authorization': `Bearer ${newToken}`, 'Prefer': 'outlook.timezone="UTC"' }
         });
         return data.value;

@@ -305,7 +305,14 @@ function OutlookWidget() {
     if (calData) {
       setEvents(calData.map(e => ({
         title: e.subject,
-        time: new Date(e.start?.dateTime + 'Z').toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        time: (() => {
+          const d = new Date(e.start?.dateTime + 'Z');
+          const today = new Date(); today.setHours(0,0,0,0);
+          const eventDay = new Date(d); eventDay.setHours(0,0,0,0);
+          const isToday = eventDay.getTime() === today.getTime();
+          const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          return isToday ? timeStr : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' ' + timeStr;
+        })(),
         duration: '',
         location: e.location?.displayName || '',
         color: 'var(--info)',

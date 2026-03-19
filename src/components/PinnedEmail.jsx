@@ -89,7 +89,7 @@ export default function PinnedEmailWidget() {
 
         {!isConfigured && (
           <div style={{ marginTop: 10, padding: 10, background: 'var(--warning-dim)', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem', color: 'var(--warning)' }}>
-            <AlertCircle size={12} style={{ display: 'inline', verticalAlign: -2 }} /> Connect Microsoft Graph API in Settings to see your real flagged emails
+            <AlertCircle size={12} style={{ display: 'inline', verticalAlign: -2 }} /> Connect Microsoft Graph API in Settings to see your flagged emails
           </div>
         )}
       </div>
