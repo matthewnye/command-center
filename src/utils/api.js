@@ -4,12 +4,33 @@
 
 export function getConfig() {
   try {
-    return JSON.parse(localStorage.getItem('cmd_config') || '{}');
+    const config = JSON.parse(localStorage.getItem('cmd_config') || '{}');
+    // If config is empty but backup exists, recover from backup
+    if (Object.keys(config).length === 0) {
+      const backup = localStorage.getItem('cmd_config_backup');
+      if (backup) {
+        const recovered = JSON.parse(backup);
+        if (Object.keys(recovered).length > 0) {
+          console.log('Config recovered from backup');
+          localStorage.setItem('cmd_config', backup);
+          return recovered;
+        }
+      }
+    }
+    return config;
   } catch { return {}; }
 }
 
 export function saveConfig(config) {
+  // Don't save empty config over existing data
+  const existing = JSON.parse(localStorage.getItem('cmd_config') || '{}');
+  if (Object.keys(config).length === 0 && Object.keys(existing).length > 0) {
+    console.warn('Blocked saving empty config over existing data');
+    return;
+  }
   localStorage.setItem('cmd_config', JSON.stringify(config));
+  // Always keep a backup
+  localStorage.setItem('cmd_config_backup', JSON.stringify(config));
 }
 
 // ── Proxy Helper ──

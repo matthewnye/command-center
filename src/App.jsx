@@ -1161,10 +1161,14 @@ function SettingsPanel({ onClose }) {
 
   const handleSave = () => {
     saveConfig(config);
-    setSaved(true);
-    setTimeout(() => {
-      window.location.reload();
-    }, 800);
+    // Verify save succeeded before reloading
+    const verify = getConfig();
+    if (Object.keys(verify).length > 0) {
+      setSaved(true);
+      setTimeout(() => window.location.reload(), 600);
+    } else {
+      alert('Failed to save config — please try again.');
+    }
   };
 
   return (
