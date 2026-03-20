@@ -496,11 +496,13 @@ function RescueTimeWidget() {
         <div className="productivity-bar-group">
           {data.map((cat, i) => (
             <div className="productivity-bar-row" key={`${view}-${i}`}>
-              <div className="productivity-bar-label">{cat.name}</div>
-              <div className="productivity-bar-track">
+              <div className="productivity-bar-track" style={{ flex: 1 }}>
                 <div className="productivity-bar-fill" style={{ width: `${(cat.hours / maxHours) * 100}%`, background: cat.color }}></div>
               </div>
-              <div className="productivity-bar-value" style={{ color: cat.color }}>{cat.hours}h</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 130, justifyContent: 'flex-end', textAlign: 'right' }}>
+                <div className="productivity-bar-label" style={{ minWidth: 0, textAlign: 'right' }}>{cat.name}</div>
+                <div className="productivity-bar-value" style={{ color: cat.color, minWidth: 32 }}>{cat.hours}h</div>
+              </div>
             </div>
           ))}
         </div>
