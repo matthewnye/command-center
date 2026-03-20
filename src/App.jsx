@@ -4,6 +4,7 @@ import { requestNotificationPermission, restoreReminders } from './utils/notific
 import WIDGET_REGISTRY from './widgets/registry';
 import SettingsPanel from './components/SettingsPanel';
 import EditModeBar, { loadWidgetVisibility, saveWidgetVisibility, loadWidgetOrder, saveWidgetOrder } from './components/EditModeBar';
+import ResizableWidget from './components/ResizableWidget';
 
 const DEFAULT_VISIBLE = WIDGET_REGISTRY.map(w => w.id);
 
@@ -137,7 +138,11 @@ export default function App() {
         {activeWidgets.map(w => {
           const Component = w.component;
           const props = widgetProps[w.id] || {};
-          return <Component key={w.id} {...props} />;
+          return (
+            <ResizableWidget key={w.id} id={w.id}>
+              <Component {...props} />
+            </ResizableWidget>
+          );
         })}
         {activeWidgets.length === 0 && (
           <div style={{
