@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Settings, Play, Pause, SkipBack, SkipForward, X, LayoutGrid } from 'lucide-react';
+import { Settings, Play, Pause, SkipBack, SkipForward, X, LayoutGrid, ShoppingBag } from 'lucide-react';
 import { requestNotificationPermission, restoreReminders } from './utils/notifications';
 import WIDGET_REGISTRY from './widgets/registry';
 import SettingsPanel from './components/SettingsPanel';
+import WidgetMarketplace from './components/WidgetMarketplace';
 import EditModeBar, { loadWidgetVisibility, saveWidgetVisibility, loadWidgetOrder, saveWidgetOrder } from './components/EditModeBar';
 
 const DEFAULT_VISIBLE = WIDGET_REGISTRY.map(w => w.id);
 
 export default function App() {
   const [showSettings, setShowSettings] = useState(false);
+  const [showMarketplace, setShowMarketplace] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [time, setTime] = useState(new Date());
   const [visibleWidgets, setVisibleWidgets] = useState(loadWidgetVisibility);
@@ -117,6 +119,9 @@ export default function App() {
           >
             {editMode ? <X size={16} /> : <LayoutGrid size={16} />}
           </button>
+          <button className="btn btn-icon" onClick={() => setShowMarketplace(true)} title="Widget Marketplace">
+            <ShoppingBag size={16} />
+          </button>
           <button className="btn btn-icon" onClick={() => setShowSettings(true)} title="Settings">
             <Settings size={16} />
           </button>
@@ -150,6 +155,7 @@ export default function App() {
       </main>
 
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+      {showMarketplace && <WidgetMarketplace onClose={() => { setShowMarketplace(false); setVisibleWidgets(loadWidgetVisibility()); }} />}
     </div>
   );
 }
