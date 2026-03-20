@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Activity, Mail, Eye, Moon, Wifi, WifiOff, RefreshCw, Settings } from 'lucide-react';
-import { getConfig, fetchRescueTimeFull, fetchRescueTimeActivities } from '../utils/api';
+import { Activity, Mail, Eye, Moon, Wifi, WifiOff, RefreshCw, Settings, ChevronDown, ChevronUp, Users, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { getConfig, fetchRescueTimeFull, fetchRescueTimeActivities, fetchOutlookCalendar } from '../utils/api';
+import { recordSnapshot, classifyIdleTime, computeBaselines, computeAdaptiveScore, getKPIDrillDown, getWeeklyTrend } from '../utils/adaptive';
 
 // ═══════════════════════════════════════════════════════════════
 // FOCUS HEARTBEAT — Real-time productivity pulse via RescueTime
@@ -45,11 +46,32 @@ function useRescueTimePoll(intervalMs = 60000) {
         fetchRescueTimeFull(config),
         fetchRescueTimeActivities(config),
       ]);
+      // Also fetch calendar for meeting-aware idle
+      let calEvents = [];
+      if (config.msGraphToken || config.msGraphRefreshToken) {
+        try {
+          const cal = await fetchOutlookCalendar(config);
+          if (cal) {
+            calEvents = cal.map(e => ({
+              title: e.subject,
+              startISO: e.start?.dateTime ? new Date(e.start.dateTime + 'Z').toISOString() : null,
+              endISO: e.end?.dateTime ? new Date(e.end.dateTime + 'Z').toISOString() : null,
+            }));
+          }
+        } catch {}
+      }
       if (result) {
-        // Merge activities data into result for KPI extraction
         result.activities = activities || [];
+        result.calendarEvents = calEvents;
         setData(result);
         setLastFetch(new Date());
+        // Record snapshot for adaptive learning
+        recordSnapshot(result, calEvents);
+        // Recompute baselines every 10 minutes
+        if (!window._lastBaselineCompute || Date.now() - window._lastBaselineCompute > 600000) {
+          computeBaselines();
+          window._lastBaselineCompute = Date.now();
+        }
       } else {
         setError('fetch_failed');
       }
@@ -467,7 +489,25 @@ export default function FocusHeartbeatWidget() {
   const source = isConnected ? data : demo;
   const score = source?.score ?? demo.score;
   const emailMins = isConnected ? getEmailMinutes(data) : 14;
-  const idleMins = isConnected ? getIdleMinutes(data) : 0;
+  
+  // Adaptive idle classification (meeting-aware)
+  const calEvents = data?.calendarEvents || [];
+  const idleInfo = isConnected ? classifyIdleTime(data, calEvents) : { totalIdle: 0, meetingIdle: 0, actualIdle: 0, breakdown: [] };
+  const idleMins = idleInfo.actualIdle;
+
+  // Baselines and adaptive score
+  const [baselines, setBaselines] = useState(() => computeBaselines());
+  const adaptive = isConnected ? computeAdaptiveScore(data, calEvents, baselines) : null;
+
+  // Drill-down state
+  const [expandedKPI, setExpandedKPI] = useState(null);
+  const toggleKPI = (kpi) => setExpandedKPI(expandedKPI === kpi ? null : kpi);
+
+  // Refresh baselines periodically
+  useEffect(() => {
+    const interval = setInterval(() => setBaselines(computeBaselines()), 600000);
+    return () => clearInterval(interval);
+  }, []);
 
   const [history, setHistory] = useState(() => {
     try {
@@ -532,10 +572,11 @@ export default function FocusHeartbeatWidget() {
       <div className="widget-body">
         {error === 'no_key' && !data ? <SetupPrompt /> : (
           <>
-            {/* State label */}
-            <div style={{ textAlign: 'center', marginBottom: 6 }}>
+            {/* State label — click for focus drill-down */}
+            <div style={{ textAlign: 'center', marginBottom: 6, cursor: 'pointer' }} onClick={() => toggleKPI('focus')}>
               <span style={{ fontSize: '1.6rem', marginRight: 8 }}>{state.emoji}</span>
               <span style={{ fontSize: '1.1rem', fontWeight: 700, color: state.color }}>{state.label}</span>
+              <ChevronDown size={12} style={{ verticalAlign: -1, marginLeft: 4, color: 'var(--text-muted)', transform: expandedKPI === 'focus' ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
                 {state.desc}
                 {trend > 5 && ' · Trending up ↑'}
@@ -550,20 +591,153 @@ export default function FocusHeartbeatWidget() {
               <HeartbeatCanvas score={score} width={300} height={80} />
             </div>
 
-            {/* Metrics */}
+            {/* Metrics — Clickable with drill-down */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 10 }}>
               {[
-                { icon: Mail, val: `${emailMins}m`, label: 'Email', color: emailMins > 45 ? 'var(--warning)' : 'var(--info)' },
-                { icon: Eye, val: `${tabSwitches}`, label: 'Tab Switches', color: tabSwitches > 20 ? 'var(--warning)' : 'var(--text-secondary)' },
-                { icon: Moon, val: idleMins > 0 ? `${idleMins}m` : '0m', label: 'Idle Today', color: idleMins > 60 ? 'var(--warning)' : 'var(--text-muted)' },
+                { key: 'email', icon: Mail, val: `${emailMins}m`, label: 'Email', color: emailMins > 45 ? 'var(--warning)' : 'var(--info)',
+                  vsAvg: baselines?.overall?.emailMins ? emailMins - Math.round(baselines.overall.emailMins) : null },
+                { key: 'tabs', icon: Eye, val: `${tabSwitches}`, label: 'Tab Switches', color: tabSwitches > 20 ? 'var(--warning)' : 'var(--text-secondary)' },
+                { key: 'idle', icon: Moon, 
+                  val: idleInfo.totalIdle > 0 ? `${idleInfo.totalIdle}m` : '0m',
+                  label: idleInfo.meetingIdle > 0 ? `Idle (${idleInfo.meetingIdle}m mtg)` : 'Idle Today',
+                  color: idleInfo.actualIdle > 60 ? 'var(--warning)' : 'var(--text-muted)',
+                  meetingIcon: idleInfo.meetingIdle > 0 },
               ].map((m, i) => (
-                <div key={i} style={{ textAlign: 'center', padding: '6px 2px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
-                  <m.icon size={12} style={{ color: m.color, marginBottom: 2 }} />
+                <div key={i} onClick={() => toggleKPI(m.key)}
+                  style={{ textAlign: 'center', padding: '6px 2px', background: expandedKPI === m.key ? 'var(--bg-elevated)' : 'var(--bg-input)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', transition: 'all 0.2s', border: expandedKPI === m.key ? '1px solid var(--border-default)' : '1px solid transparent' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                    <m.icon size={12} style={{ color: m.color, marginBottom: 2 }} />
+                    {m.meetingIcon && <Users size={9} style={{ color: 'var(--info)', opacity: 0.7 }} />}
+                  </div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.82rem', color: m.color }}>{m.val}</div>
-                  <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{m.label}</div>
+                  <div style={{ fontSize: '0.58rem', color: 'var(--text-muted)' }}>{m.label}</div>
+                  {m.vsAvg != null && (
+                    <div style={{ fontSize: '0.55rem', color: m.vsAvg > 0 ? 'var(--warning)' : 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
+                      {m.vsAvg > 0 ? `+${m.vsAvg}m vs avg` : `${m.vsAvg}m vs avg`}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+
+            {/* Drill-down panels */}
+            {expandedKPI && (
+              <div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', padding: 10, marginBottom: 10, border: '1px solid var(--border-subtle)', fontSize: '0.75rem' }}>
+                {expandedKPI === 'email' && (() => {
+                  const d = getKPIDrillDown('email', data, calEvents, baselines);
+                  return (
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: 6, color: 'var(--info)' }}>📧 Email & Communication</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 6 }}>
+                        <div style={{ padding: 6, background: 'var(--bg-input)', borderRadius: 4 }}>
+                          <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>Today</div>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--info)' }}>{d.current}m</div>
+                        </div>
+                        <div style={{ padding: 6, background: 'var(--bg-input)', borderRadius: 4 }}>
+                          <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>Daily Avg</div>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-secondary)' }}>{d.avgDaily ?? '—'}m</div>
+                        </div>
+                      </div>
+                      {d.vsAvg != null && <div style={{ color: d.vsAvg > 0 ? 'var(--warning)' : 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
+                        {d.vsAvg > 0 ? '↑' : '↓'} {d.label}
+                      </div>}
+                      {!baselines && <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Building baselines... need 3+ days of data</div>}
+                    </div>
+                  );
+                })()}
+
+                {expandedKPI === 'idle' && (() => {
+                  const d = getKPIDrillDown('idle', data, calEvents, baselines);
+                  return (
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: 6, color: 'var(--text-muted)' }}>🌙 Idle Time Breakdown</div>
+                      {d.breakdown.map((b, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                          <span>{b.type === 'meeting' ? '👥 ' : '💤 '}{b.label}</span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: b.type === 'meeting' ? 'var(--info)' : 'var(--warning)' }}>{b.mins}m</span>
+                        </div>
+                      ))}
+                      {d.breakdown.length === 0 && <div style={{ color: 'var(--text-muted)' }}>No idle time recorded</div>}
+                      <div style={{ marginTop: 6, fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                        Total untracked: {d.total}m = {d.inMeetings}m meetings + {d.actualIdle}m away
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {expandedKPI === 'focus' && (() => {
+                  const d = getKPIDrillDown('focus', data, calEvents, baselines);
+                  return (
+                    <div>
+                      <div style={{ fontWeight: 600, marginBottom: 6, color: state.color }}>🎯 Focus Score Breakdown</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 8 }}>
+                        <div style={{ padding: 6, background: 'var(--bg-input)', borderRadius: 4, textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>Raw Score</div>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{d.adaptive?.raw ?? '—'}</div>
+                        </div>
+                        <div style={{ padding: 6, background: 'var(--bg-input)', borderRadius: 4, textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>Your Avg</div>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{d.overallAvg ?? '—'}</div>
+                        </div>
+                        <div style={{ padding: 6, background: 'var(--bg-input)', borderRadius: 4, textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()]} Avg</div>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{d.dowAvg ?? '—'}</div>
+                        </div>
+                      </div>
+                      {d.adaptive?.meetingAdjustment > 0 && (
+                        <div style={{ color: 'var(--info)', marginBottom: 4 }}>👥 In meeting: +{d.adaptive.meetingAdjustment} adjustment (not penalizing low activity during meetings)</div>
+                      )}
+                      {d.adaptive?.baselineComparison != null && (
+                        <div style={{ color: d.adaptive.baselineComparison >= 0 ? 'var(--accent)' : 'var(--warning)', marginBottom: 4 }}>
+                          {d.adaptive.baselineComparison >= 0 ? <TrendingUp size={11} style={{ verticalAlign: -2 }} /> : <TrendingDown size={11} style={{ verticalAlign: -2 }} />}
+                          {' '}{d.adaptive.baselineComparison >= 0 ? '+' : ''}{Math.round(d.adaptive.baselineComparison)} vs your overall average
+                        </div>
+                      )}
+                      {d.weeklyScores.length > 0 && (
+                        <div style={{ marginTop: 6 }}>
+                          <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginBottom: 4 }}>Last {d.weeklyScores.length} days</div>
+                          <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 30 }}>
+                            {d.weeklyScores.map((ws, i) => (
+                              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                                <div style={{ width: '100%', background: ws.avg >= 70 ? 'var(--accent)' : ws.avg >= 50 ? 'var(--warning)' : 'var(--danger)', borderRadius: 2, height: `${Math.max(4, (ws.avg / 100) * 28)}px`, opacity: 0.7 }} />
+                                <span style={{ fontSize: '0.5rem', color: 'var(--text-muted)' }}>{new Date(ws.day + 'T12:00').toLocaleDateString('en-US', { weekday: 'narrow' })}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div style={{ marginTop: 6, fontSize: '0.62rem', color: 'var(--text-muted)' }}>
+                        {d.daysOfData > 0 ? `${d.daysOfData} days of history · Baselines active` : 'Collecting data... baselines activate after 3 days'}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {expandedKPI === 'tabs' && (
+                  <div>
+                    <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text-secondary)' }}>👁 Tab Switches</div>
+                    <div style={{ color: 'var(--text-muted)' }}>Counts visibility changes in this browser session. High counts may indicate context-switching.</div>
+                    <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)' }}>
+                      {tabSwitches < 10 ? '✅ Low — good focus' : tabSwitches < 25 ? '⚡ Moderate — some context switching' : '⚠️ High — lots of multitasking'}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Adaptive context line */}
+            {adaptive && baselines && (
+              <div style={{ textAlign: 'center', fontSize: '0.68rem', color: 'var(--text-muted)', marginBottom: 6, fontFamily: 'var(--font-mono)' }}>
+                {adaptive.baselineComparison != null && (
+                  <span>
+                    {adaptive.baselineComparison >= 5 ? <TrendingUp size={10} style={{ verticalAlign: -2, color: 'var(--accent)' }} /> : adaptive.baselineComparison <= -5 ? <TrendingDown size={10} style={{ verticalAlign: -2, color: 'var(--warning)' }} /> : <Minus size={10} style={{ verticalAlign: -2 }} />}
+                    {' '}{adaptive.baselineComparison >= 0 ? '+' : ''}{Math.round(adaptive.baselineComparison)} vs your avg
+                    {adaptive.dowComparison != null && ` · ${adaptive.dowComparison >= 0 ? '+' : ''}${Math.round(adaptive.dowComparison)} vs ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()]}s`}
+                  </span>
+                )}
+                {!baselines && <span style={{ fontStyle: 'italic' }}>Learning your patterns...</span>}
+              </div>
+            )}
 
             {/* Sparkline */}
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
