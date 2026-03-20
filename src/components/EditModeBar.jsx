@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import WIDGET_REGISTRY from '../widgets/registry';
 
+const DEFAULT_VISIBLE = WIDGET_REGISTRY.map(w => w.id);
 
 function loadWidgetVisibility() {
   try {
