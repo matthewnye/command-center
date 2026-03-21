@@ -127,21 +127,17 @@ body {
   flex: 1;
   padding: 16px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
   align-content: start;
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1200px) {
   .dashboard {
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
   }
-}
-
-@media (max-width: 1000px) {
-  .dashboard {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  }
+  /* Cap span-3 to 2 on smaller screens */
+  .dashboard > *[style*="span 3"] { grid-column: span 2 !important; }
 }
 
 @media (max-width: 768px) {
@@ -150,6 +146,7 @@ body {
     padding: 10px;
     gap: 10px;
   }
+  .dashboard > * { grid-column: span 1 !important; }
 }
 
 /* ── Widget Card ── */
