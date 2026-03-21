@@ -84,11 +84,11 @@ export default function RescueTimeWidget() {
         <div className="productivity-bar-group">
           {data.map((cat, i) => (
             <div className="productivity-bar-row" key={`${view}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div className="productivity-bar-label" style={{ minWidth: 120, textAlign: 'right', flexShrink: 0 }}>{cat.name}</div>
+              <div className="productivity-bar-label" style={{ width: 140, minWidth: 140, textAlign: 'right', flexShrink: 0, fontSize: '0.75rem' }}>{cat.name}</div>
               <div className="productivity-bar-track" style={{ flex: 1 }}>
                 <div className="productivity-bar-fill" style={{ width: `${(cat.hours / maxHours) * 100}%`, background: cat.color }}></div>
               </div>
-              <div className="productivity-bar-value" style={{ color: cat.color, minWidth: 32, textAlign: 'right', flexShrink: 0 }}>{cat.hours}h</div>
+              <div className="productivity-bar-value" style={{ color: cat.color, width: 36, minWidth: 36, textAlign: 'right', flexShrink: 0 }}>{cat.hours}h</div>
             </div>
           ))}
         </div>

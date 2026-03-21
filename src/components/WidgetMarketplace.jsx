@@ -36,10 +36,11 @@ const STATUS_LABELS = {
 
 function getAuthAction(widget) {
   const id = widget.id;
-  if (id === 'spotify' || id === 'spotify') return { label: 'Connect Spotify', url: ENV.SPOTIFY_AUTH_URL };
-  if (id === 'outlook' || id === 'pinned') return { label: 'Connect Microsoft', url: ENV.MS_AUTH_URL };
+  if (id === 'spotify') return { label: 'Connect Spotify', url: ENV.SPOTIFY_AUTH_URL };
+  if (id === 'outlook' || id === 'pinned' || id === 'teams-recordings') return { label: 'Connect Microsoft', url: ENV.MS_AUTH_URL };
   if (id === 'heartbeat' || id === 'rescuetime') return { label: 'Get API Key', url: 'https://www.rescuetime.com/anapi/manage' };
   if (id === 'jira') return { label: 'Get JIRA Token', url: 'https://id.atlassian.com/manage-profile/security/api-tokens' };
+  if (id === 'stocks') return { label: 'Get Free API Key', url: 'https://finnhub.io/register' };
   return null;
 }
 
@@ -70,6 +71,9 @@ const CONFIG_FIELDS = {
   spotify: [
     { key: 'spotifyToken', label: 'Access Token', type: 'password', placeholder: 'Spotify access token' },
     { key: 'spotifyRefreshToken', label: 'Refresh Token', type: 'password', placeholder: 'Spotify refresh token' },
+  ],
+  stocks: [
+    { key: 'finnhubKey', label: 'Finnhub API Key', type: 'password', placeholder: 'Free API key from finnhub.io' },
   ],
 };
 
@@ -164,32 +168,35 @@ export default function WidgetMarketplace({ onClose }) {
               }}>
                 {/* Card Header */}
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
-                  cursor: fields.length > 0 ? 'pointer' : 'default',
-                }} onClick={() => fields.length > 0 && setExpandedId(isExpanded ? null : widget.id)}>
+                  display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px',
+                  cursor: 'pointer',
+                }} onClick={() => setExpandedId(isExpanded ? null : widget.id)}>
                   {/* Icon */}
                   <div style={{
-                    width: 40, height: 40, borderRadius: 10,
+                    minWidth: 44, width: 44, height: 44, borderRadius: 10,
                     background: `${cat?.color || '#666'}15`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '1.3rem', flexShrink: 0,
+                    fontSize: '1.4rem', flexShrink: 0, overflow: 'visible',
                   }}>{widget.icon}</div>
 
                   {/* Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '0.92rem', fontWeight: 600 }}>{widget.label}</span>
-                      {cat && <span style={{ fontSize: '0.6rem', padding: '1px 6px', borderRadius: 4, background: `${cat.color}15`, color: cat.color }}>{cat.label}</span>}
+                      {cat && <span style={{ fontSize: '0.6rem', padding: '1px 6px', borderRadius: 4, background: `${cat.color}15`, color: cat.color, whiteSpace: 'nowrap' }}>{cat.label}</span>}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.3 }}>{widget.description}</div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.45 }}>{widget.description}</div>
                   </div>
 
-                  {/* Status + Toggle */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    <span style={{
-                      fontSize: '0.65rem', fontWeight: 500, padding: '2px 8px', borderRadius: 4,
-                      background: statusInfo.bg, color: statusInfo.color,
-                    }}>{statusInfo.label}</span>
+                  {/* Status + Toggle — stacked, right-aligned */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0, paddingTop: 2, minWidth: 100 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{
+                        fontSize: '0.62rem', fontWeight: 500, padding: '2px 8px', borderRadius: 4,
+                        background: statusInfo.bg, color: statusInfo.color, whiteSpace: 'nowrap',
+                      }}>{statusInfo.label}</span>
+                      {isExpanded ? <ChevronDown size={12} style={{ color: 'var(--text-muted)' }} /> : <ChevronRight size={12} style={{ color: 'var(--text-muted)' }} />}
+                    </div>
 
                     {/* Enable/Disable toggle */}
                     <button onClick={(e) => { e.stopPropagation(); toggleEnabled(widget.id); }}
@@ -205,10 +212,6 @@ export default function WidgetMarketplace({ onClose }) {
                         boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                       }} />
                     </button>
-
-                    {fields.length > 0 && (
-                      isExpanded ? <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} /> : <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
-                    )}
                   </div>
                 </div>
 

@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const { url, method, headers, body } = req.body || {};
   if (!url) return res.status(200).json({ ok: false, error: 'Missing url' });
 
-  const allowed = ['atlassian.net', 'tempo.io', 'rescuetime.com', 'graph.microsoft.com', 'api.spotify.com'];
+  const allowed = ['atlassian.net', 'tempo.io', 'rescuetime.com', 'graph.microsoft.com', 'api.spotify.com', 'finnhub.io'];
   let parsedUrl;
   try { parsedUrl = new URL(url); } catch { return res.status(200).json({ ok: false, error: 'Invalid URL' }); }
   if (!allowed.some(d => parsedUrl.hostname.endsWith(d))) {

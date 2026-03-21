@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check, Plus, Settings, Zap } from 'lucide-react';
+import { getConfig } from '../utils/api';
 
 const DEFAULT_LAUNCHES = [
   { id: 'claude', name: 'Claude', url: 'https://claude.ai/new', icon: '◈', bg: 'linear-gradient(135deg, #d4a574, #c9956c)' },
@@ -15,7 +16,7 @@ function loadLaunches() {
 }
 function saveLaunches(l) { localStorage.setItem('cmd_launches', JSON.stringify(l)); }
 
-export default function QuickLaunchWidget() {
+export default function QuickLaunchWidget({ embedded }) {
   const [launches, setLaunches] = useState(loadLaunches);
   const [editing, setEditing] = useState(false);
   const [editItem, setEditItem] = useState(null); // null = not editing, 'new' = adding, or id
@@ -62,19 +63,16 @@ export default function QuickLaunchWidget() {
 
   const removeItem = (id) => setLaunches(prev => prev.filter(l => l.id !== id));
 
-  return (
-    <div className="widget">
-      <div className="widget-header">
-        <div className="widget-title"><Zap className="icon" /> Quick Launch</div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          <button className={`btn btn-sm ${editing ? 'btn-accent' : ''}`} onClick={() => { setEditing(!editing); setEditItem(null); }}>
-            {editing ? <><Check size={11} /> Done</> : <><Settings size={11} /></>}
-          </button>
-        </div>
+  const innerContent = (
+    <>
+      {/* Edit controls */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
+        <button className={`btn btn-sm ${editing ? 'btn-accent' : ''}`} onClick={() => { setEditing(!editing); setEditItem(null); }}>
+          {editing ? <><Check size={11} /> Done</> : <><Settings size={11} /></>}
+        </button>
       </div>
-      <div className="widget-body">
-        {/* Edit/Add form */}
-        {editItem && (
+      {/* Edit/Add form */}
+      {editItem && (
           <div style={{ padding: 10, background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-accent)', marginBottom: 10 }}>
             <input type="text" placeholder="Name" value={formName} onChange={e => setFormName(e.target.value)} style={{ marginBottom: 6, fontSize: '0.82rem' }} />
             <input type="url" placeholder="URL (https://...)" value={formUrl} onChange={e => setFormUrl(e.target.value)} style={{ marginBottom: 6, fontSize: '0.82rem', fontFamily: 'var(--font-mono)' }} />
@@ -147,6 +145,18 @@ export default function QuickLaunchWidget() {
             </button>
           )}
         </div>
+    </>
+  );
+
+  if (embedded) return innerContent;
+
+  return (
+    <div className="widget">
+      <div className="widget-header">
+        <div className="widget-title"><Zap className="icon" /> Quick Launch</div>
+      </div>
+      <div className="widget-body">
+        {innerContent}
       </div>
     </div>
   );

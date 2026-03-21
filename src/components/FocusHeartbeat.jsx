@@ -391,11 +391,11 @@ function HistorySparkline({ history, width = 300, height = 55 }) {
           <line x1={points[hoverIdx].x} y1={0} x2={points[hoverIdx].x} y2={height} stroke={state.color} strokeWidth="0.6" strokeDasharray="2,2" opacity="0.5" />
           <circle cx={points[hoverIdx].x} cy={points[hoverIdx].y} r="4" fill={state.color} stroke="#0a0a0f" strokeWidth="1.5" />
           {/* Tooltip above point */}
-          <rect x={points[hoverIdx].x - 30} y={Math.max(0, points[hoverIdx].y - 28)} width={60} height={22} rx={4} fill="rgba(10,10,20,0.92)" stroke={state.color} strokeWidth="0.5" />
-          <text x={points[hoverIdx].x} y={Math.max(10, points[hoverIdx].y - 18)} textAnchor="middle" fill={state.color} fontSize="8" fontWeight="700" fontFamily="var(--font-mono)">
+          <rect x={Math.min(width - 80, Math.max(0, points[hoverIdx].x - 40))} y={Math.max(0, points[hoverIdx].y - 38)} width={80} height={30} rx={5} fill="rgba(10,10,20,0.95)" stroke={state.color} strokeWidth="0.7" />
+          <text x={Math.min(width - 40, Math.max(40, points[hoverIdx].x))} y={Math.max(14, points[hoverIdx].y - 22)} textAnchor="middle" fill={state.color} fontSize="12" fontWeight="700" fontFamily="var(--font-mono)">
             {Math.round(points[hoverIdx].score)}%
           </text>
-          <text x={points[hoverIdx].x} y={Math.max(20, points[hoverIdx].y - 10)} textAnchor="middle" fill="var(--text-muted)" fontSize="6" fontFamily="var(--font-mono)">
+          <text x={Math.min(width - 40, Math.max(40, points[hoverIdx].x))} y={Math.max(26, points[hoverIdx].y - 12)} textAnchor="middle" fill="var(--text-muted)" fontSize="9" fontFamily="var(--font-mono)">
             {formatTime(points[hoverIdx].time)}
           </text>
         </>

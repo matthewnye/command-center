@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { CheckSquare, Mic, Layers, Type, Copy, Check } from 'lucide-react';
+import { CheckSquare, Mic, Layers, Type, Copy, Check, Zap } from 'lucide-react';
 import EnhancedTasksWidget from './EnhancedTasks';
+import QuickLaunchWidget from './QuickLaunchWidget';
 import { transformText, STYLE_NAMES, STYLE_KEYS } from '../utils/unicode';
 
 // Lightweight Voice Notes (inline to avoid circular deps)
@@ -134,11 +135,15 @@ export default function HubWidget() {
           <button className={tab === 'unicode' ? 'active' : ''} onClick={() => setTab('unicode')}>
             <Type size={12} style={{ verticalAlign: -2, marginRight: 4 }} />Unicode
           </button>
+          <button className={tab === 'launch' ? 'active' : ''} onClick={() => setTab('launch')}>
+            <Zap size={12} style={{ verticalAlign: -2, marginRight: 4 }} />Links
+          </button>
         </div>
 
         {tab === 'tasks' && <EnhancedTasksWidget embedded />}
         {tab === 'voice' && <VoiceNotesInner />}
         {tab === 'unicode' && <UnicodeInner />}
+        {tab === 'launch' && <QuickLaunchWidget embedded />}
       </div>
     </div>
   );

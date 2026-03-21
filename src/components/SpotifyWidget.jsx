@@ -382,7 +382,18 @@ export default function SpotifyWidget({ onNowPlaying, onControls }) {
     <div className="widget">
       <div className="widget-header">
         <div className="widget-title"><Music className="icon" /> Music {!isConfigured && <span className="badge badge-warning">Demo</span>}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {/* Playback controls */}
+          <button onClick={skipPrev} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex' }}><SkipBack size={13} /></button>
+          <button onClick={togglePlay} style={{
+            width: 26, height: 26, borderRadius: '50%', border: 'none',
+            background: 'var(--accent)', color: '#000', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {isPlaying ? <Pause size={12} /> : <Play size={12} style={{ marginLeft: 1 }} />}
+          </button>
+          <button onClick={skipNext} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2, display: 'flex' }}><SkipForward size={13} /></button>
+          <span style={{ width: 1, height: 16, background: 'var(--border-subtle)', margin: '0 2px' }} />
           {lastRefresh && <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{lastRefresh.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>}
           <button className="btn btn-sm" onClick={() => { loadPlaylists(); loadNowPlaying(); }} disabled={loading}>
             <RefreshCw size={12} className={loading ? 'spin' : ''} />

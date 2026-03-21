@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Settings, Play, Pause, SkipBack, SkipForward, X, LayoutGrid, ShoppingBag } from 'lucide-react';
+import { Settings, Play, Pause, SkipBack, SkipForward, X, LayoutGrid, ShoppingBag, TrendingUp, TrendingDown } from 'lucide-react';
 import { requestNotificationPermission, restoreReminders } from './utils/notifications';
 import WIDGET_REGISTRY from './widgets/registry';
 import SettingsPanel from './components/SettingsPanel';
 import WidgetMarketplace from './components/WidgetMarketplace';
-import EditModeBar, { loadWidgetVisibility, saveWidgetVisibility, loadWidgetOrder, saveWidgetOrder } from './components/EditModeBar';
+import EditModeBar, { loadWidgetVisibility, saveWidgetVisibility, loadWidgetOrder, saveWidgetOrder, loadWidgetSizes } from './components/EditModeBar';
 
 const DEFAULT_VISIBLE = WIDGET_REGISTRY.map(w => w.id);
 
@@ -15,12 +15,15 @@ export default function App() {
   const [time, setTime] = useState(new Date());
   const [visibleWidgets, setVisibleWidgets] = useState(loadWidgetVisibility);
   const [widgetOrder, setWidgetOrder] = useState(loadWidgetOrder);
+  const [widgetSizes, setWidgetSizes] = useState(loadWidgetSizes);
 
   // Shared JIRA tracking state — bridges JIRA widget → Focus Timer
   const [trackedTicket, setTrackedTicket] = useState(null);
   // Spotify now playing — for header player bar
   const [spotifyNowPlaying, setSpotifyNowPlaying] = useState(null);
   const [spotifyControls, setSpotifyControls] = useState(null);
+  // Stock ticker marquee data
+  const [stockMarquee, setStockMarquee] = useState(null);
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -49,19 +52,20 @@ export default function App() {
   const activeWidgets = widgetOrder
     .filter(id => visibleWidgets.includes(id))
     .map(id => WIDGET_REGISTRY.find(w => w.id === id))
-    .filter(Boolean);
+    .filter(w => w && w.component);
 
   // Props to inject per widget
   const widgetProps = {
     jira: { onTrackTicket: setTrackedTicket },
     timer: { trackedTicket, onClearTracked: () => setTrackedTicket(null) },
     spotify: { onNowPlaying: setSpotifyNowPlaying, onControls: setSpotifyControls },
+    stocks: { onMarqueeData: setStockMarquee },
   };
 
   return (
     <div className="app">
-      {/* Spotify Player Bar */}
-      {spotifyNowPlaying?.name && (
+      {/* Marquee Bar — Spotify (when playing) or Stock Ticker (when stocks loaded and no music) */}
+      {spotifyNowPlaying?.name ? (
         <div style={{
           background: '#191414', borderBottom: '1px solid rgba(29,185,84,0.2)',
           height: 32, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 10,
@@ -102,6 +106,29 @@ export default function App() {
           )}
           <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
         </div>
+      ) : stockMarquee?.length > 0 && (
+        <div style={{
+          background: '#0d0d14', borderBottom: '1px solid rgba(251,191,36,0.15)',
+          height: 32, display: 'flex', alignItems: 'center', overflow: 'hidden', position: 'relative',
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 24,
+            whiteSpace: 'nowrap', animation: `stock-scroll ${Math.max(20, stockMarquee.length * 5)}s linear infinite`,
+            position: 'absolute', paddingLeft: '100%',
+          }}>
+            {[...stockMarquee, ...stockMarquee].map((q, i) => (
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', fontWeight: 700, color: '#e8e8ed' }}>{q.symbol}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: '#8888a0' }}>${q.price?.toFixed(2)}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', fontWeight: 600, color: q.change >= 0 ? '#6ee7b7' : '#f87171', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                  {q.change >= 0 ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+                  {q.changePercent >= 0 ? '+' : ''}{q.changePercent?.toFixed(2)}%
+                </span>
+              </span>
+            ))}
+          </div>
+          <style>{`@keyframes stock-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
+        </div>
       )}
 
       <header className="app-header">
@@ -135,6 +162,7 @@ export default function App() {
           onToggle={toggleWidget}
           onReorder={updateOrder}
           onClose={() => setEditMode(false)}
+          onSizesChange={setWidgetSizes}
         />
       )}
 
@@ -142,7 +170,12 @@ export default function App() {
         {activeWidgets.map(w => {
           const Component = w.component;
           const props = widgetProps[w.id] || {};
-          return <Component key={w.id} {...props} />;
+          const cols = widgetSizes[w.id]?.cols || 1;
+          return (
+            <div key={w.id} style={cols > 1 ? { gridColumn: `span ${cols}` } : undefined}>
+              <Component {...props} />
+            </div>
+          );
         })}
         {activeWidgets.length === 0 && (
           <div style={{

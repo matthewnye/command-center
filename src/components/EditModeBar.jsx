@@ -27,11 +27,20 @@ function saveWidgetOrder(order) {
   localStorage.setItem('cmd_widget_order', JSON.stringify(order));
 }
 
-export { loadWidgetVisibility, saveWidgetVisibility, loadWidgetOrder, saveWidgetOrder };
+function loadWidgetSizes() {
+  try { return JSON.parse(localStorage.getItem('cmd_widget_sizes')) || {}; } catch { return {}; }
+}
 
-export default function EditModeBar({ visible, order, onToggle, onReorder, onClose }) {
+function saveWidgetSizes(sizes) {
+  localStorage.setItem('cmd_widget_sizes', JSON.stringify(sizes));
+}
+
+export { loadWidgetVisibility, saveWidgetVisibility, loadWidgetOrder, saveWidgetOrder, loadWidgetSizes, saveWidgetSizes };
+
+export default function EditModeBar({ visible, order, onToggle, onReorder, onClose, onSizesChange }) {
   const [dragItem, setDragItem] = useState(null);
   const [dragOver, setDragOver] = useState(null);
+  const [sizes, setSizes] = useState(loadWidgetSizes);
 
   const handleDragStart = (id) => setDragItem(id);
   const handleDragOver = (e, id) => { e.preventDefault(); setDragOver(id); };
@@ -81,11 +90,11 @@ export default function EditModeBar({ visible, order, onToggle, onReorder, onClo
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: '1rem' }}>⚙️</span> Edit Layout
-          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>Drag to reorder · Click toggle to show/hide</span>
+          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>Drag to reorder · Toggle to show/hide · [1][2][3] set column width</span>
         </div>
         <button className="btn btn-accent btn-sm" onClick={onClose}>Done</button>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 6 }}>
         {order.map((id) => {
           const widget = WIDGET_REGISTRY.find(w => w.id === id);
           if (!widget) return null;
@@ -128,8 +137,26 @@ export default function EditModeBar({ visible, order, onToggle, onReorder, onClo
               <span style={{
                 fontSize: '0.75rem', fontWeight: 500,
                 color: isVisible ? 'var(--text-primary)' : 'var(--text-muted)',
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
               }}>{widget.label}</span>
+              {/* Size controls */}
+              {isVisible && (
+                <div style={{ display: 'flex', gap: 2, alignItems: 'center', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                  {[1,2,3].map(cols => (
+                    <button key={cols} onClick={() => {
+                      const next = { ...sizes, [id]: { ...(sizes[id] || {}), cols } };
+                      setSizes(next); saveWidgetSizes(next); onSizesChange?.(next);
+                    }} style={{
+                      width: 18, height: 18, fontSize: '0.6rem', fontFamily: 'var(--font-mono)',
+                      border: `1px solid ${(sizes[id]?.cols || 1) === cols ? 'var(--accent)' : 'var(--border-subtle)'}`,
+                      background: (sizes[id]?.cols || 1) === cols ? 'var(--accent-dim)' : 'transparent',
+                      color: (sizes[id]?.cols || 1) === cols ? 'var(--accent)' : 'var(--text-muted)',
+                      borderRadius: 3, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontWeight: 600,
+                    }}>{cols}</button>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
