@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { BarChart3, RefreshCw, Zap } from 'lucide-react';
 import { fetchRescueTimeActivities, fetchRescueTimeFull, getConfig } from '../utils/api';
 
-export default function RescueTimeWidget() {
+export default function RescueTimeWidget({ embedded }) {
   const [view, setView] = useState('activities');
   const [activities, setActivities] = useState(null);
   const [productivity, setProductivity] = useState(null);
@@ -59,6 +59,36 @@ export default function RescueTimeWidget() {
   const data = view === 'activities' ? displayActivities : displayProductivity;
   const maxHours = Math.max(...data.map(c => c.hours), 0.1);
 
+  const innerContent = (
+    <>
+      <div style={{ textAlign: 'center', marginBottom: 10 }}>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Today: {displayTotal}h tracked</div>
+      </div>
+      <div className="tab-bar">
+        <button className={view === 'activities' ? 'active' : ''} onClick={() => setView('activities')}>Activities</button>
+        <button className={view === 'productivity' ? 'active' : ''} onClick={() => setView('productivity')}>Productivity</button>
+      </div>
+      <div className="productivity-bar-group">
+        {data.map((cat, i) => (
+          <div className="productivity-bar-row" key={`${view}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="productivity-bar-label" style={{ width: 140, minWidth: 140, textAlign: 'right', flexShrink: 0, fontSize: '0.75rem' }}>{cat.name}</div>
+            <div className="productivity-bar-track" style={{ flex: 1 }}>
+              <div className="productivity-bar-fill" style={{ width: `${(cat.hours / maxHours) * 100}%`, background: cat.color }}></div>
+            </div>
+            <div className="productivity-bar-value" style={{ color: cat.color, width: 36, minWidth: 36, textAlign: 'right', flexShrink: 0 }}>{cat.hours}h</div>
+          </div>
+        ))}
+      </div>
+      {!isConfigured && (
+        <div style={{ marginTop: 12, padding: 10, background: 'var(--accent-dim)', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem', color: 'var(--accent)' }}>
+          <Zap size={12} style={{ display: 'inline', verticalAlign: -2 }} /> Add your RescueTime API key in Settings for real data
+        </div>
+      )}
+    </>
+  );
+
+  if (embedded) return innerContent;
+
   return (
     <div className="widget">
       <div className="widget-header">
@@ -74,29 +104,7 @@ export default function RescueTimeWidget() {
         </div>
       </div>
       <div className="widget-body">
-        <div style={{ textAlign: 'center', marginBottom: 10 }}>
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Today: {displayTotal}h tracked</div>
-        </div>
-        <div className="tab-bar">
-          <button className={view === 'activities' ? 'active' : ''} onClick={() => setView('activities')}>Activities</button>
-          <button className={view === 'productivity' ? 'active' : ''} onClick={() => setView('productivity')}>Productivity</button>
-        </div>
-        <div className="productivity-bar-group">
-          {data.map((cat, i) => (
-            <div className="productivity-bar-row" key={`${view}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div className="productivity-bar-label" style={{ width: 140, minWidth: 140, textAlign: 'right', flexShrink: 0, fontSize: '0.75rem' }}>{cat.name}</div>
-              <div className="productivity-bar-track" style={{ flex: 1 }}>
-                <div className="productivity-bar-fill" style={{ width: `${(cat.hours / maxHours) * 100}%`, background: cat.color }}></div>
-              </div>
-              <div className="productivity-bar-value" style={{ color: cat.color, width: 36, minWidth: 36, textAlign: 'right', flexShrink: 0 }}>{cat.hours}h</div>
-            </div>
-          ))}
-        </div>
-        {!isConfigured && (
-          <div style={{ marginTop: 12, padding: 10, background: 'var(--accent-dim)', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem', color: 'var(--accent)' }}>
-            <Zap size={12} style={{ display: 'inline', verticalAlign: -2 }} /> Add your RescueTime API key in Settings for real data
-          </div>
-        )}
+        {innerContent}
       </div>
     </div>
   );

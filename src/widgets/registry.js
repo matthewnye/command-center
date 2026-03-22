@@ -10,7 +10,6 @@ import FocusTimerWidget from '../components/FocusTimerWidget';
 import WorldTimezoneWidget from '../components/WorldTimezone';
 import PinnedEmailWidget from '../components/PinnedEmail';
 import SpotifyWidget from '../components/SpotifyWidget';
-import RescueTimeWidget from '../components/RescueTimeWidget';
 import LinkedInWidget from '../components/LinkedInWidget';
 import MeetingNotesWidget from '../components/MeetingNotesWidget';
 import OutlookWidget from '../components/OutlookWidget';
@@ -26,7 +25,7 @@ const WIDGET_REGISTRY = [
     icon: '💓',
     component: FocusHeartbeatWidget,
     category: 'productivity',
-    description: 'Real-time EKG-style productivity pulse powered by RescueTime. Adaptive scoring learns your patterns over time.',
+    description: 'Real-time EKG-style productivity pulse powered by RescueTime. Includes Productivity tab with activity breakdown and adaptive scoring that learns your patterns.',
     requires: ['rescueTimeKey'],
     requiresLabel: 'RescueTime API key',
     status: 'stable',
@@ -92,17 +91,6 @@ const WIDGET_REGISTRY = [
     description: 'Spotify playlists, playback controls in the header bar, and top tracks/artists stats.',
     requires: ['spotifyToken'],
     requiresLabel: 'Spotify token',
-    status: 'stable',
-  },
-  {
-    id: 'rescuetime',
-    label: 'Productivity',
-    icon: '📊',
-    component: RescueTimeWidget,
-    category: 'productivity',
-    description: 'Activity breakdown and productivity levels from RescueTime. Auto-refreshes every 5 minutes.',
-    requires: ['rescueTimeKey'],
-    requiresLabel: 'RescueTime API key',
     status: 'stable',
   },
   {

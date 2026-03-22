@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Activity, Mail, Eye, Moon, Wifi, WifiOff, RefreshCw, Settings, ChevronDown, ChevronUp, Users, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Activity, Mail, Eye, Moon, Wifi, WifiOff, RefreshCw, Settings, ChevronDown, ChevronUp, Users, TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react';
 import { getConfig, fetchRescueTimeFull, fetchRescueTimeActivities, fetchOutlookCalendar } from '../utils/api';
 import { recordSnapshot, classifyIdleTime, computeBaselines, computeAdaptiveScore, getKPIDrillDown, getWeeklyTrend } from '../utils/adaptive';
+import RescueTimeWidget from './RescueTimeWidget';
 
 // ═══════════════════════════════════════════════════════════════
 // FOCUS HEARTBEAT — Real-time productivity pulse via RescueTime
@@ -501,6 +502,7 @@ export default function FocusHeartbeatWidget() {
 
   // Drill-down state
   const [expandedKPI, setExpandedKPI] = useState(null);
+  const [hbTab, setHbTab] = useState('heartbeat');
   const toggleKPI = (kpi) => setExpandedKPI(expandedKPI === kpi ? null : kpi);
 
   // Refresh baselines periodically
@@ -570,7 +572,18 @@ export default function FocusHeartbeatWidget() {
       </div>
 
       <div className="widget-body">
-        {error === 'no_key' && !data ? <SetupPrompt /> : (
+        <div className="tab-bar" style={{ marginBottom: 8 }}>
+          <button className={hbTab === 'heartbeat' ? 'active' : ''} onClick={() => setHbTab('heartbeat')}>
+            <Activity size={12} style={{ verticalAlign: -2, marginRight: 4 }} />Heartbeat
+          </button>
+          <button className={hbTab === 'productivity' ? 'active' : ''} onClick={() => setHbTab('productivity')}>
+            <BarChart3 size={12} style={{ verticalAlign: -2, marginRight: 4 }} />Productivity
+          </button>
+        </div>
+
+        {hbTab === 'productivity' && <RescueTimeWidget embedded />}
+
+        {hbTab === 'heartbeat' && (error === 'no_key' && !data ? <SetupPrompt /> : (
           <>
             {/* State label — click for focus drill-down */}
             <div style={{ textAlign: 'center', marginBottom: 6, cursor: 'pointer' }} onClick={() => toggleKPI('focus')}>
@@ -746,7 +759,7 @@ export default function FocusHeartbeatWidget() {
             </div>
             <HistorySparkline history={history} width={300} height={45} />
           </>
-        )}
+        ))}
       </div>
     </div>
   );
