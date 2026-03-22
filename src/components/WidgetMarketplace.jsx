@@ -75,6 +75,10 @@ const CONFIG_FIELDS = {
   stocks: [
     { key: 'finnhubKey', label: 'Finnhub API Key', type: 'password', placeholder: 'Free API key from finnhub.io' },
   ],
+  'teams-recordings': [
+    { key: 'msGraphToken', label: 'Access Token', type: 'password', placeholder: 'MS Graph access token' },
+    { key: 'msGraphRefreshToken', label: 'Refresh Token', type: 'password', placeholder: 'MS Graph refresh token' },
+  ],
 };
 
 // ── Marketplace Component ──

@@ -16,6 +16,7 @@ import MeetingNotesWidget from '../components/MeetingNotesWidget';
 import OutlookWidget from '../components/OutlookWidget';
 import StockTickerWidget from '../components/StockTickerWidget';
 import NetworkStatsWidget from '../components/NetworkStatsWidget';
+import TeamsRecordingsWidget from '../components/TeamsRecordingsWidget';
 
 const WIDGET_REGISTRY = [
   {
@@ -140,12 +141,12 @@ const WIDGET_REGISTRY = [
     id: 'teams-recordings',
     label: 'Teams Recordings',
     icon: '🟣',
-    component: null,
+    component: TeamsRecordingsWidget,
     category: 'communication',
-    description: 'Browse and play your most recent Microsoft Teams meeting recordings. Requires Microsoft Graph permissions.',
+    description: 'Browse and play your most recent Microsoft Teams meeting recordings from OneDrive.',
     requires: ['msGraphToken'],
-    requiresLabel: 'Microsoft Graph token with OnlineMeetings.Read scope',
-    status: 'coming-soon',
+    requiresLabel: 'Microsoft Graph token with Files.Read scope',
+    status: 'stable',
   },
   {
     id: 'webex-recordings',

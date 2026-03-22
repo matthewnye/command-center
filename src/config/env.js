@@ -14,7 +14,7 @@ const ENV = {
   // Microsoft Graph OAuth (public client ID — safe in frontend)
   MS_CLIENT_ID: 'b893ab07-78ef-434f-b5b3-a22b1fd471cb',
   MS_TENANT_ID: '441cb3eb-b496-45de-8460-c359a63b5805',
-  MS_SCOPES: 'Mail.Read Calendars.Read User.Read offline_access',
+  MS_SCOPES: 'Mail.Read Calendars.Read User.Read Files.Read OnlineMeetings.Read offline_access',
 };
 
 // Computed URLs
