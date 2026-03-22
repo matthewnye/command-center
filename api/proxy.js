@@ -6,10 +6,10 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(200).json({ ok: false, error: 'Method not allowed' });
 
-  const { url, method, headers, body } = req.body || {};
+  const { url, method, headers, body, responseType } = req.body || {};
   if (!url) return res.status(200).json({ ok: false, error: 'Missing url' });
 
-  const allowed = ['atlassian.net', 'tempo.io', 'rescuetime.com', 'graph.microsoft.com', 'api.spotify.com', 'finnhub.io', 'api.ring.com'];
+  const allowed = ['atlassian.net', 'tempo.io', 'rescuetime.com', 'graph.microsoft.com', 'api.spotify.com', 'finnhub.io', 'ring.com'];
   let parsedUrl;
   try { parsedUrl = new URL(url); } catch { return res.status(200).json({ ok: false, error: 'Invalid URL' }); }
   if (!allowed.some(d => parsedUrl.hostname.endsWith(d))) {
@@ -17,13 +17,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const opts = { method: method || 'GET', headers: { 'Accept': 'application/json', ...(headers || {}) } };
+    const opts = { method: method || 'GET', headers: { ...(headers || {}) } };
+    if (!opts.headers['Accept']) opts.headers['Accept'] = 'application/json';
     if (method && method !== 'GET' && body) {
       opts.body = typeof body === 'string' ? body : JSON.stringify(body);
       if (!opts.headers['Content-Type']) opts.headers['Content-Type'] = 'application/json';
     }
 
     const response = await fetch(url, opts);
+
+    // Handle binary/base64 responses (for images)
+    if (responseType === 'base64') {
+      const buffer = await response.arrayBuffer();
+      const base64 = Buffer.from(buffer).toString('base64');
+      return res.status(200).json({ ok: response.ok, status: response.status, data: base64 });
+    }
+
     const text = await response.text();
     let data;
     try { data = JSON.parse(text); } catch { data = text; }
